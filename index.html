@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -35,6 +34,182 @@
         .xp-bar { height: 100%; background: linear-gradient(90deg, #ff8c00, #ff4500); width: 0%; transition: width 0.5s ease; }
         .xp-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
         .xp-text { font-size: 9px; color: #787b86; }
+        .wins-count { font-size: 9px; color: #00e676; font-weight: bold; text-transform: uppercase; }
+        
+        .drawer-label { font-size: 11px; color: #787b86; text-transform: uppercase; letter-spacing: 1px; }
+        .drawer-btn { width: 100%; background: #1c212e; border: 1px solid #2a2e3d; color: white; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 15px; text-align: center; }
+        .drawer-btn:active { background: #2a2e3d; }
+        
+        .bonus-btn { width: 100%; background: linear-gradient(45deg, #ffd700, #ff8c00); border: none; color: #000; padding: 12px; border-radius: 6px; font-weight: 800; font-size: 12px; cursor: pointer; margin-bottom: 10px; text-align: center; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); transition: all 0.3s; }
+        .bonus-btn:disabled { background: #2a2e3d; color: #787b86; box-shadow: none; cursor: not-allowed; }
+
+        .trade-hist-header { font-size: 12px; font-weight: bold; color: #fff; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .trade-history-list { flex: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 5px; }
+        .trade-history-item { font-size: 11px; padding: 8px; border-bottom: 1px solid #1c212e; display: flex; justify-content: space-between; align-items: center; }
+        .drawer-logout { background: #ff3d00; border: none; color: white; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; width: 100%; text-align: center; margin-top: auto; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-card { background: #1c212e; border: 1px solid #2a2e3d; border-radius: 12px; width: 90%; max-width: 360px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
+        .modal-close { position: absolute; top: 10px; right: 10px; color: #787b86; cursor: pointer; font-size: 20px; }
+        .modal-tabs { display: flex; border-bottom: 1px solid #2a2e3d; margin-bottom: 20px; }
+        .tab-btn { flex: 1; background: none; border: none; color: #787b86; padding: 12px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { color: #00b0ff; border-bottom: 2px solid #00b0ff; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 11px; color: #787b86; margin-bottom: 5px; }
+        .form-input { width: 100%; background: #151924; border: 1px solid #333; border-radius: 6px; padding: 12px; color: white; outline: none; }
+        .promo-input { border: 1px solid #00b0ff !important; color: #00b0ff; font-weight: bold; text-align: center; letter-spacing: 2px; }
+        .submit-btn { width: 100%; background: #00b0ff; border: none; border-radius: 6px; padding: 14px; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        
+        .history-list { max-height: 150px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #2a2e3d; padding-top: 10px; }
+        .history-item { font-size: 11px; display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; }
+
+        .target-indicator { background: #151924; padding: 8px; border-radius: 6px; text-align: center; margin-bottom: 15px; font-size: 12px; font-weight: bold; border: 1px solid #2a2e3d; }
+
+        /* Path Fixed: earth.png */
+        #chart-container { 
+            flex: 1; position: relative; background-color: #0b0e16;
+            background-image: linear-gradient(rgba(11, 14, 22, 0.6), rgba(11, 14, 22, 0.6)), url('earth.png');
+            background-size: cover; background-repeat: no-repeat; background-position: center;
+            overflow: hidden; width: 100%; cursor: crosshair; 
+        }
+
+        #chart-container::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: linear-gradient(rgba(42, 46, 61, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(42, 46, 61, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none; z-index: 1;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; position: relative; z-index: 5; }
+        .price-tag { position: absolute; right: 0; padding: 4px 10px; font-size: 12px; font-weight: bold; border-radius: 4px 0 0 4px; z-index: 100; pointer-events: none; background: #fff; color: #000; box-shadow: 0 0 10px rgba(255,255,255,0.2); transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .trade-timer-overlay { position: absolute; left: 15px; background: rgba(21, 25, 36, 0.9); padding: 3px 8px; border-radius: 4px; border: 1px solid #00b0ff; z-index: 200; font-size: 11px; display: none; color: #00b0ff; font-weight: bold; transform: translateY(-100%); pointer-events: none; transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .controls { background: #151924; padding: 15px; border-top: 1px solid #2a2e3d; }
+        .setting-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .box { flex: 1; background: #1c212e; border: 1px solid #333; border-radius: 6px; padding: 8px; text-align: center; }
+        .box-label { font-size: 9px; color: #787b86; display: block; margin-bottom: 4px; }
+        .box-val-input { background: transparent; border: none; color: white; font-size: 14px; font-weight: bold; text-align: center; width: 100%; outline: none; }
+
+        .btn-row { display: flex; gap: 12px; }
+        .btn { flex: 1; border: none; border-radius: 8px; padding: 12px; color: white; font-weight: bold; font-size: 16px; display: flex; flex-direction: column; align-items: center; }
+        .btn-up { background: #00c853; box-shadow: 0 4px #008a39; }
+        .btn-down { background: #ff3d00; box-shadow: 0 4px #b32a00; }
+
+        .admin-scroll { max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .admin-field { background: #151924; border: 1px solid #333; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+        .admin-field label { font-size: 10px; color: #00b0ff; }
+        .admin-field input { width: 100%; background: transparent; border: none; color: #fff; font-size: 14px; margin-top: 5px; outline: none; }
+    </style>
+</head>
+<body>
+
+<div id="tradeTimer" class="trade-timer-overlay">TIME: <span id="timerVal">0</span>s</div>
+
+<div class="modal-overlay" id="adminLoginModal"><div class="modal-card"><span class="modal-close" onclick="closeAdminModals()">×</span><h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">ADMIN LOGIN</h3><div class="form-group"><label>USERNAME</label><input type="text" id="admUser" class="form-input" placeholder="Admin ID"></div><div class="form-group"><label>PASSWORD</label><input type="password" id="admPass" class="form-input" placeholder="••••••••"></div><button class="submit-btn" onclick="verifyAdmin()">LOGIN</button></div></div>
+<div class="modal-overlay" id="adminPanelModal"><div class="modal-card"><span class="modal-close" onclick="closeAdminModals()">×</span><h3 style="text-align: center; margin-bottom: 15px; color: #00e676;">EDITOR PANEL</h3><div class="admin-scroll"><div class="admin-field"><label>SELECT USER TO EDIT</label><select id="adminUserSelector" class="form-input" onchange="loadUserToAdminPanel(this.value)" style="background:#151924; color:white;"></select></div><div class="admin-field"><label>BALANCE (PKR)</label><input type="number" id="editBal"></div><div class="admin-field"><label>LEVEL</label><input type="number" id="editLvl"></div><div class="admin-field"><label>XP</label><input type="number" id="editXP"></div><div class="admin-field"><label>TOTAL WINS</label><input type="number" id="editWins"></div><div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAWAL TARGET PROGRESS</label><input type="number" id="editWithdrawTargetProgress"></div><div class="admin-field" style="border: 1px solid #ff3d00;"><label>REQUIRED WINS LIMIT</label><input type="number" id="editMinWins"></div><div class="admin-field" style="border: 1px solid #00b0ff;"><label>PROMO CODE</label><input type="text" id="editPromo"></div><hr style="border:0; border-top:1px solid #2a2e3d; margin:10px 0;"><p style="font-size: 10px; color:#787b86; margin-bottom:10px;">CRYPTO BASE VALUES</p><div id="cryptoListInputs"></div></div><button class="submit-btn" style="background:#00e676" onclick="applyAdminChanges()">SAVE CHANGES</button></div></div>
+<div class="modal-overlay" id="authModal"><div class="modal-card"><div class="modal-tabs"><button class="tab-btn active" id="loginTab" onclick="switchAuth('login')">LOGIN</button><button class="tab-btn" id="registerTab" onclick="switchAuth('register')">REGISTER</button></div><div id="regFields" style="display:none"><div class="form-group"><label>EMAIL</label><input type="email" id="authEmail" class="form-input" placeholder="user@gmail.com"></div><div class="form-group"><label>PHONE</label><input type="number" id="authPhone" class="form-input" placeholder="03XXXXXXXXX"></div></div><div class="form-group"><label>USERNAME</label><input type="text" id="authUser" class="form-input" placeholder="Enter username"></div><div class="form-group"><label>PASSWORD</label><input type="password" id="authPass" class="form-input" placeholder="••••••••"></div><button class="submit-btn" onclick="handleAuth()">CONTINUE</button></div></div>
+<div class="modal-overlay" id="transModal"><div class="modal-card"><span class="modal-close" onclick="toggleTransModal(false)">×</span><div class="modal-tabs"><button class="tab-btn active" id="depTab" onclick="switchTrans('deposit')">DEPOSIT</button><button class="tab-btn" id="withTab" onclick="switchTrans('withdraw')">WITHDRAW</button></div><div id="withdrawTargetBox" class="target-indicator" style="display:none;">Target Wins: <span id="currentWinsInTrans">0</span> / <span id="requiredWinsInTrans">50</span></div><div class="form-group" style="text-align: center; margin-bottom: 10px;"><img src="1.png" width="100" alt="JazzCash"></div><div class="form-group"><label>JAZZCASH NUMBER</label><input type="number" id="transPhone" class="form-input" placeholder="03XXXXXXXXX"></div><div class="form-group"><label>AMOUNT (PKR)</label><input type="number" id="transAmount" class="form-input" placeholder="Enter amount"></div><div class="form-group"><label>ENTER PROMO CODE</label><input type="text" id="transPromo" class="form-input promo-input" placeholder="XXXXXX"></div><button class="submit-btn" id="transSubmitBtn" onclick="handleTransaction()">CONFIRM</button><div class="history-list" id="historyList"></div></div></div>
+<div class="modal-overlay" id="resultModal"><div class="modal-card"><h2 id="resultTitle">RESULT</h2><div id="resultAmount" style="font-size: 24px; font-weight: bold; margin: 15px 0;">Rs 0.00</div><button class="submit-btn" onclick="document.getElementById('resultModal').style.display='none'">OK</button></div></div>
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
+<div class="side-drawer" id="sideDrawer">
+    <div class="profile-section"><div class="drawer-label">User Profile ID</div><div class="profile-header-info"><div class="profile-id" id="profileIdText">Guest_User</div><div class="level-badge">LVL <span id="levelText">1</span></div></div><div class="xp-container"><div class="xp-bar" id="xpBar"></div></div><div class="xp-footer"><span class="wins-count">Wins: <span id="winsText">0</span></span><span class="xp-text"><span id="xpValText">0</span> / 100 XP</span></div></div>
+    <button id="dailyBonusBtn" class="bonus-btn" onclick="claimDailyBonus()">CLAIM DAILY BONUS</button>
+    <button class="drawer-btn" onclick="toggleDrawer(false); toggleTransModal(true);">DEPOSIT / WITHDRAW</button>
+    <div class="trade-hist-header"><span>TRADE HISTORY</span></div>
+    <div class="trade-history-list" id="tradeHistoryList"></div>
+    <button class="drawer-logout" onclick="logout()">LOGOUT</button>
+</div>
+
+<div class="header">
+    <div class="logo-group">
+        <div class="logo" id="logoAdminTrigger">AH<span style="color:#fff"> TRADING</span></div>
+        <select id="assetSelector" class="asset-select" onchange="changeAsset()">
+            <option value="BTC" data-base="80018.8" data-dev="20">BTC / USD</option>
+            <option value="ETH" data-base="2061.65" data-dev="1.5">ETH / USD</option>
+            <option value="SOL" data-base="83.64" data-dev="0.05">SOL / USD</option>
+            <option value="BNB" data-base="653.2" data-dev="0.2">BNB / USD</option>
+        </select>
+    </div>
+    <div class="balance-area"><div class="bal-label">BALANCE</div><div class="bal-val" id="balanceText">Rs 0.00</div></div>
+    <div class="header-right"><button class="menu-btn" onclick="toggleDrawer(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#787b86" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1" fill="#787b86"/><circle cx="12" cy="12" r="1" fill="#787b86"/><circle cx="12" cy="19" r="1" fill="#787b86"/></svg></button></div>
+</div>
+
+<div id="chart-container"><div id="priceTag" class="price-tag">0.00</div><canvas id="mainChart"></canvas></div>
+
+<div class="controls">
+    <div class="setting-row"><div class="box"><span class="box-label">TIME (SEC)</span><input type="number" id="timeInput" class="box-val-input" value="5"></div><div class="box"><span class="box-label">INVESTMENT (PKR)</span><input type="number" id="investInput" class="box-val-input" value="5"></div></div>
+    <div class="btn-row"><button class="btn btn-up" onclick="placeTrade('CALL')">HIGHER ▲</button><button class="btn btn-down" onclick="placeTrade('PUT')">LOWER ▼</button></div>
+</div>
+
+<script>
+    // ==========================================
+    // CRITICAL FIX: Safe Local Storage Wrappers
+    // ==========================================
+    function safeGet(key) { try { return localStorage.getItem(key); } catch(e) { return null; } }
+    function safeSet(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+    function safeRem(key) { try { localStorage.removeItem(key); } catch(e) {} }
+
+    let db; 
+    let currentAuthMode = 'login', isLoggedIn = false, currentTransMode = 'deposit', currentUser = null;
+    let balance = 0, currentPrice = 75018.80, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
+    let dotGlowRadius = 4, glowGrowing = true;
+    let userLevel = 1, userXP = 0, winCount = 0;
+    
+    // SAFE CALLS TO LOCAL STORAGE
+    let requiredWinsForWithdraw = parseInt(safeGet('min_wins_limit') || '50');
+    let withdrawTargetProgress = 0;
+    let logoPressTimer;
+    let currentPromoCode = "AH9900";
+    let allUsersData = {};
+
+    const canvas = document.getElementById('mainChart');
+    const ctx = canvas.getContext('2d');
+    const priceTag = document.getElementById('priceTag');
+    const tradeTimer = document.getElementById('tradeTimer');
+
+    function init() {
+        try { resize(); window.addEventListener('resize', resize); } catch(e){}
+        try { document.getElementById('chart-container').addEventListener('mousedown', manualPriceUpdate); } catch(e){}
+        changeAsset(); 
+        
+        requestAnimationFrame(render);
+        setInterval(updatePrice, 800); 
+        setInterval(updateTimer, 1000); 
+        setInterval(updateBonusTimer, 1000); 
+        setInterval(refreshPromoCode, 5 * 60 * 1000);
+        
+        setupAdminTrigger(); refreshPromoCode(); 
+
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyA8FuGJ54Yv0TdauGmTADYPEQjlqCQSAz8",
+                authDomain: "ah-trading-98e6a.firebaseapp.com",
+                databaseURL: "https://ah-trading-98e6a-default-rtdb.firebaseio.com",
+                projectId: "ah-trading-98e6a",
+                storageBucket: "ah-trading-98e6a.firebasestorage.app",
+                appId: "1:617012552850:android:3e1425677ad3d6c231324b"
+            };
+            if (typeof firebase !== 'undefined' && !firebase.apps.length) { 
+                firebase.initializeApp(firebaseConfig); 
+            }
+            if (typeof firebase !== 'undefined') {
+                db = firebase.database();
+            }
+        } catch (error) { console.log("Firebase block", error); }
+
+        checkSession();
+
+        if (db) {
+            try {
+                db.ref('global_config').on('value', (snap) => {
+                    const data = snap.val();
+                    if(data) {
+                        if(data.promo) currentPromoCode = data.promo;
+                        if(data.minWins) { requiredWinsForWithdraw = data.minWins; updateWithdrawUI(); }
+                        if(data.assets) {
+                            for(let k in data.assets) {
+                                const opt = document.querySelector(`#assetSelector         .xp-text { font-size: 9px; color: #787b86; }
         .wins-count { font-size: 9px; color: #00e676; font-weight: bold; text-transform: uppercase; }
         
         .drawer-label { font-size: 11px; color: #787b86; text-transform: uppercase; letter-spacing: 1px; }
