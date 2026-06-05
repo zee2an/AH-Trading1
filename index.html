@@ -99,6 +99,9 @@
         .admin-field { background: #151924; border: 1px solid #333; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
         .admin-field label { font-size: 10px; color: #00b0ff; }
         .admin-field input { width: 100%; background: transparent; border: none; color: #fff; font-size: 14px; margin-top: 5px; outline: none; }
+        
+        /* NEW ADMIN STYLES FOR USER TAB */
+        .user-select-list { margin-bottom: 15px; background: #151924; border: 1px solid #333; color: white; width: 100%; padding: 10px; border-radius: 6px; outline: none; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -118,20 +121,48 @@
 <div class="modal-overlay" id="adminPanelModal">
     <div class="modal-card">
         <span class="modal-close" onclick="closeAdminModals()">×</span>
-        <h3 style="text-align: center; margin-bottom: 15px; color: #00e676;">EDITOR PANEL</h3>
-        <div class="admin-scroll">
-            <div class="admin-field"><label>BALANCE (PKR)</label><input type="number" id="editBal"></div>
-            <div class="admin-field"><label>LEVEL</label><input type="number" id="editLvl"></div>
-            <div class="admin-field"><label>XP</label><input type="number" id="editXP"></div>
-            <div class="admin-field"><label>TOTAL WINS (MAIN PROFILE DISPLAY)</label><input type="number" id="editWins"></div>
-            <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAWAL TARGET PROGRESS (CURRENT WINS)</label><input type="number" id="editWithdrawTargetProgress"></div>
-            <div class="admin-field" style="border: 1px solid #ff3d00;"><label>REQUIRED WINS FOR WITHDRAWAL (LIMIT)</label><input type="number" id="editMinWins" placeholder="e.g. 50"></div>
-            <div class="admin-field" style="border: 1px solid #00b0ff;"><label>CURRENT PROMO CODE</label><input type="text" id="editPromo"></div>
-            <hr style="border:0; border-top:1px solid #2a2e3d; margin:10px 0;">
-            <p style="font-size: 10px; color:#787b86; margin-bottom:10px;">CRYPTO BASE VALUES</p>
-            <div id="cryptoListInputs"></div>
+        
+        <!-- Tabs Inside Admin Panel -->
+        <div class="modal-tabs" style="margin-bottom: 15px;">
+            <button class="tab-btn active" id="adminPanelEditorTab" onclick="switchAdminTab('editor')">EDITOR</button>
+            <button class="tab-btn" id="adminPanelUsersTab" onclick="switchAdminTab('users')">USERS DATA</button>
         </div>
-        <button class="submit-btn" style="background:#00e676" onclick="applyAdminChanges()">SAVE CHANGES</button>
+
+        <!-- Tab 1: Editor Panel -->
+        <div id="adminEditorSection">
+            <h3 style="text-align: center; margin-bottom: 15px; color: #00e676;">EDITOR PANEL</h3>
+            <div class="admin-scroll">
+                <div class="admin-field"><label>BALANCE (PKR)</label><input type="number" id="editBal"></div>
+                <div class="admin-field"><label>LEVEL</label><input type="number" id="editLvl"></div>
+                <div class="admin-field"><label>XP</label><input type="number" id="editXP"></div>
+                <div class="admin-field"><label>TOTAL WINS (MAIN PROFILE DISPLAY)</label><input type="number" id="editWins"></div>
+                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAWAL TARGET PROGRESS (CURRENT WINS)</label><input type="number" id="editWithdrawTargetProgress"></div>
+                <div class="admin-field" style="border: 1px solid #ff3d00;"><label>REQUIRED WINS FOR WITHDRAWAL (LIMIT)</label><input type="number" id="editMinWins" placeholder="e.g. 50"></div>
+                <div class="admin-field" style="border: 1px solid #00b0ff;"><label>CURRENT PROMO CODE</label><input type="text" id="editPromo"></div>
+                <hr style="border:0; border-top:1px solid #2a2e3d; margin:10px 0;">
+                <p style="font-size: 10px; color:#787b86; margin-bottom:10px;">CRYPTO BASE VALUES</p>
+                <div id="cryptoListInputs"></div>
+            </div>
+            <button class="submit-btn" style="background:#00e676" onclick="applyAdminChanges()">SAVE CHANGES</button>
+        </div>
+
+        <!-- Tab 2: Users Data Panel -->
+        <div id="adminUsersSection" style="display: none;">
+            <h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">MANAGE USERS</h3>
+            <label style="font-size: 11px; color: #787b86; display: block; margin-bottom: 5px;">SELECT REGISTERED USER</label>
+            <select id="adminUserSelector" class="user-select-list" onchange="loadSelectedUserData()">
+                <option value="">-- Select a User --</option>
+            </select>
+            
+            <div id="adminUserDataFields" style="display: none;" class="admin-scroll">
+                <div class="admin-field"><label>USER BALANCE (PKR)</label><input type="number" id="userEditBal"></div>
+                <div class="admin-field"><label>USER LEVEL</label><input type="number" id="userEditLvl"></div>
+                <div class="admin-field"><label>USER XP</label><input type="number" id="userEditXP"></div>
+                <div class="admin-field"><label>USER TOTAL WINS</label><input type="number" id="userEditWins"></div>
+                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAW TARGET PROGRESS</label><input type="number" id="userEditTargetProgress"></div>
+            </div>
+            <button id="userSaveBtn" class="submit-btn" style="background:#00b0ff; display: none;" onclick="applyUserChanges()">SAVE USER DATA</button>
+        </div>
     </div>
 </div>
 
@@ -313,6 +344,7 @@
 
     function openAdminPanel() {
         document.getElementById('adminPanelModal').style.display = 'flex';
+        switchAdminTab('editor'); // Default Open Editor Panel
         document.getElementById('editBal').value = balance;
         document.getElementById('editLvl').value = userLevel;
         document.getElementById('editXP').value = userXP;
@@ -331,6 +363,98 @@
                     <input type="number" class="adm-crypto-input" data-symbol="${opt.value}" value="${opt.getAttribute('data-base')}" step="0.0001">
                 </div>`;
         }
+        fetchAllUsersList(); // Fetch user list when admin panel opens
+    }
+
+    /* NEW TABS LOGIC FOR ADMIN MODAL */
+    function switchAdminTab(tab) {
+        if(tab === 'editor') {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn active';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn';
+            document.getElementById('adminEditorSection').style.display = 'block';
+            document.getElementById('adminUsersSection').style.display = 'none';
+        } else {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn active';
+            document.getElementById('adminEditorSection').style.display = 'none';
+            document.getElementById('adminUsersSection').style.display = 'block';
+        }
+    }
+
+    /* NEW USER MANAGEMENT FUNCTIONS */
+    let allUsersDataCache = {};
+    async function fetchAllUsersList() {
+        const selector = document.getElementById('adminUserSelector');
+        selector.innerHTML = '<option value="">-- Select a User --</option>';
+        document.getElementById('adminUserDataFields').style.display = 'none';
+        document.getElementById('userSaveBtn').style.display = 'none';
+
+        try {
+            const snap = await db.ref('users').get();
+            if(snap.exists()) {
+                allUsersDataCache = snap.val();
+                Object.keys(allUsersDataCache).forEach(username => {
+                    selector.innerHTML += `<option value="${username}">${username}</option>`;
+                });
+            }
+        } catch(e) { console.error("Error fetching users list: ", e); }
+    }
+
+    function loadSelectedUserData() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        const fieldsDiv = document.getElementById('adminUserDataFields');
+        const saveBtn = document.getElementById('userSaveBtn');
+
+        if(!selectedUser || !allUsersDataCache[selectedUser]) {
+            fieldsDiv.style.display = 'none';
+            saveBtn.style.display = 'none';
+            return;
+        }
+
+        const uData = allUsersDataCache[selectedUser];
+        document.getElementById('userEditBal').value = uData.balance || 0;
+        document.getElementById('userEditLvl').value = uData.level || 1;
+        document.getElementById('userEditXP').value = uData.xp || 0;
+        document.getElementById('userEditWins').value = uData.wins || 0;
+        document.getElementById('userEditTargetProgress').value = uData.withdrawTargetProgress || 0;
+
+        fieldsDiv.style.display = 'block';
+        saveBtn.style.display = 'block';
+    }
+
+    async function applyUserChanges() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        if(!selectedUser) return;
+
+        const uBal = parseFloat(document.getElementById('userEditBal').value) || 0;
+        const uLvl = parseInt(document.getElementById('userEditLvl').value) || 1;
+        const uXP = parseInt(document.getElementById('userEditXP').value) || 0;
+        const uWins = parseInt(document.getElementById('userEditWins').value) || 0;
+        const uTarget = parseInt(document.getElementById('userEditTargetProgress').value) || 0;
+
+        try {
+            await db.ref('users/' + selectedUser).update({
+                balance: uBal,
+                level: uLvl,
+                xp: uXP,
+                wins: uWins,
+                withdrawTargetProgress: uTarget
+            });
+            
+            // If edited user is currently logged in, sync current session variables
+            if(currentUser === selectedUser) {
+                balance = uBal;
+                userLevel = uLvl;
+                userXP = uXP;
+                winCount = uWins;
+                withdrawTargetProgress = uTarget;
+                updateBalanceUI();
+                updateLevelUI();
+            }
+
+            alert(`User "${selectedUser}" data updated successfully!`);
+            fetchAllUsersList(); // Refresh dropdown cache
+        } catch(e) { alert("Failed to update user data."); }
     }
 
     function applyAdminChanges() {
