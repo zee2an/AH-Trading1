@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AH TRADING</title>
+    <title>AH TRADING - User</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -94,77 +94,11 @@
         .btn { flex: 1; border: none; border-radius: 8px; padding: 12px; color: white; font-weight: bold; font-size: 16px; display: flex; flex-direction: column; align-items: center; }
         .btn-up { background: #00c853; box-shadow: 0 4px #008a39; }
         .btn-down { background: #ff3d00; box-shadow: 0 4px #b32a00; }
-
-        .admin-scroll { max-height: 300px; overflow-y: auto; padding-right: 5px; }
-        .admin-field { background: #151924; border: 1px solid #333; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
-        .admin-field label { font-size: 10px; color: #00b0ff; }
-        .admin-field input { width: 100%; background: transparent; border: none; color: #fff; font-size: 14px; margin-top: 5px; outline: none; }
-        
-        /* NEW ADMIN STYLES FOR USER TAB */
-        .user-select-list { margin-bottom: 15px; background: #151924; border: 1px solid #333; color: white; width: 100%; padding: 10px; border-radius: 6px; outline: none; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div id="tradeTimer" class="trade-timer-overlay">TIME: <span id="timerVal">0</span>s</div>
-
-<div class="modal-overlay" id="adminLoginModal">
-    <div class="modal-card">
-        <span class="modal-close" onclick="closeAdminModals()">×</span>
-        <h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">ADMIN LOGIN</h3>
-        <div class="form-group"><label>USERNAME</label><input type="text" id="admUser" class="form-input" placeholder="Admin ID"></div>
-        <div class="form-group"><label>PASSWORD</label><input type="password" id="admPass" class="form-input" placeholder="••••••••"></div>
-        <button class="submit-btn" onclick="verifyAdmin()">LOGIN</button>
-    </div>
-</div>
-
-<div class="modal-overlay" id="adminPanelModal">
-    <div class="modal-card">
-        <span class="modal-close" onclick="closeAdminModals()">×</span>
-        
-        <!-- Tabs Inside Admin Panel -->
-        <div class="modal-tabs" style="margin-bottom: 15px;">
-            <button class="tab-btn active" id="adminPanelEditorTab" onclick="switchAdminTab('editor')">EDITOR</button>
-            <button class="tab-btn" id="adminPanelUsersTab" onclick="switchAdminTab('users')">USERS DATA</button>
-        </div>
-
-        <!-- Tab 1: Editor Panel -->
-        <div id="adminEditorSection">
-            <h3 style="text-align: center; margin-bottom: 15px; color: #00e676;">EDITOR PANEL</h3>
-            <div class="admin-scroll">
-                <div class="admin-field"><label>BALANCE (PKR)</label><input type="number" id="editBal"></div>
-                <div class="admin-field"><label>LEVEL</label><input type="number" id="editLvl"></div>
-                <div class="admin-field"><label>XP</label><input type="number" id="editXP"></div>
-                <div class="admin-field"><label>TOTAL WINS (MAIN PROFILE DISPLAY)</label><input type="number" id="editWins"></div>
-                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAWAL TARGET PROGRESS (CURRENT WINS)</label><input type="number" id="editWithdrawTargetProgress"></div>
-                <div class="admin-field" style="border: 1px solid #ff3d00;"><label>REQUIRED WINS FOR WITHDRAWAL (LIMIT)</label><input type="number" id="editMinWins" placeholder="e.g. 50"></div>
-                <div class="admin-field" style="border: 1px solid #00b0ff;"><label>CURRENT PROMO CODE</label><input type="text" id="editPromo"></div>
-                <hr style="border:0; border-top:1px solid #2a2e3d; margin:10px 0;">
-                <p style="font-size: 10px; color:#787b86; margin-bottom:10px;">CRYPTO BASE VALUES</p>
-                <div id="cryptoListInputs"></div>
-            </div>
-            <button class="submit-btn" style="background:#00e676" onclick="applyAdminChanges()">SAVE CHANGES</button>
-        </div>
-
-        <!-- Tab 2: Users Data Panel -->
-        <div id="adminUsersSection" style="display: none;">
-            <h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">MANAGE USERS</h3>
-            <label style="font-size: 11px; color: #787b86; display: block; margin-bottom: 5px;">SELECT REGISTERED USER</label>
-            <select id="adminUserSelector" class="user-select-list" onchange="loadSelectedUserData()">
-                <option value="">-- Select a User --</option>
-            </select>
-            
-            <div id="adminUserDataFields" style="display: none;" class="admin-scroll">
-                <div class="admin-field"><label>USER BALANCE (PKR)</label><input type="number" id="userEditBal"></div>
-                <div class="admin-field"><label>USER LEVEL</label><input type="number" id="userEditLvl"></div>
-                <div class="admin-field"><label>USER XP</label><input type="number" id="userEditXP"></div>
-                <div class="admin-field"><label>USER TOTAL WINS</label><input type="number" id="userEditWins"></div>
-                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAW TARGET PROGRESS</label><input type="number" id="userEditTargetProgress"></div>
-            </div>
-            <button id="userSaveBtn" class="submit-btn" style="background:#00b0ff; display: none;" onclick="applyUserChanges()">SAVE USER DATA</button>
-        </div>
-    </div>
-</div>
 
 <div class="modal-overlay" id="authModal">
     <div class="modal-card">
@@ -238,7 +172,7 @@
 
 <div class="header">
     <div class="logo-group">
-        <div class="logo" id="logoAdminTrigger">AH<span style="color:#fff"> TRADING</span></div>
+        <div class="logo">AH<span style="color:#fff"> TRADING</span></div>
         <select id="assetSelector" class="asset-select" onchange="changeAsset()">
             <option value="BTC" data-base="80018.8" data-dev="20">BTC / USD</option>
             <option value="ETH" data-base="2061.65" data-dev="1.5">ETH / USD</option>
@@ -271,7 +205,6 @@
 </div>
 
 <script>
-    // --- FIREBASE INITIALIZATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyA8FuGJ54Yv0TdauGmTADYPEQjlqCQSAz8",
         databaseURL: "https://ah-trading-98e6a-default-rtdb.firebaseio.com",
@@ -289,7 +222,6 @@
     
     let withdrawTargetProgress = 0;
     let requiredWinsForWithdraw = 50; 
-    let logoPressTimer;
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
@@ -299,8 +231,26 @@
     const tradeTimer = document.getElementById('tradeTimer');
 
     async function init() {
-        const snap = await db.ref('settings/min_wins_limit').get();
-        if(snap.exists()) requiredWinsForWithdraw = snap.val();
+        // Real-time limit watch from Firebase
+        db.ref('settings/min_wins_limit').on('value', snap => {
+            if(snap.exists()) {
+                requiredWinsForWithdraw = snap.val();
+                updateWithdrawUI();
+            }
+        });
+
+        // Real-time Crypto Base Values watch from Firebase
+        db.ref('settings/crypto_bases').on('value', snap => {
+            if(snap.exists()) {
+                const bases = snap.val();
+                const options = document.getElementById('assetSelector').options;
+                for(let opt of options) {
+                    if(bases[opt.value]) {
+                        opt.setAttribute('data-base', bases[opt.value]);
+                    }
+                }
+            }
+        });
 
         await checkSession(); 
         resize();
@@ -310,246 +260,7 @@
         setInterval(updatePrice, 800); 
         setInterval(updateTimer, 1000); 
         setInterval(updateBonusTimer, 1000); 
-        setInterval(refreshPromoCode, 5 * 60 * 1000);
         render();
-        setupAdminTrigger();
-        refreshPromoCode(); 
-    }
-
-    function refreshPromoCode() {
-        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        let newCode = "";
-        for(let i=0; i<6; i++) newCode += chars.charAt(Math.floor(Math.random() * chars.length));
-        currentPromoCode = newCode;
-    }
-
-    function setupAdminTrigger() {
-        const logo = document.getElementById('logoAdminTrigger');
-        const start = () => { logoPressTimer = setTimeout(() => { document.getElementById('adminLoginModal').style.display = 'flex'; }, 3000); };
-        const end = () => { clearTimeout(logoPressTimer); };
-        logo.addEventListener('mousedown', start);
-        logo.addEventListener('mouseup', end);
-        logo.addEventListener('touchstart', start);
-        logo.addEventListener('touchend', end);
-    }
-
-    function verifyAdmin() {
-        const u = document.getElementById('admUser').value;
-        const p = document.getElementById('admPass').value;
-        if(u === 'admin' && p === '@dmin1234') {
-            document.getElementById('adminLoginModal').style.display = 'none';
-            openAdminPanel();
-        } else { alert("Wrong Password!"); }
-    }
-
-    function openAdminPanel() {
-        document.getElementById('adminPanelModal').style.display = 'flex';
-        switchAdminTab('editor'); // Default Open Editor Panel
-        document.getElementById('editBal').value = balance;
-        document.getElementById('editLvl').value = userLevel;
-        document.getElementById('editXP').value = userXP;
-        document.getElementById('editWins').value = winCount;
-        document.getElementById('editWithdrawTargetProgress').value = withdrawTargetProgress;
-        document.getElementById('editPromo').value = currentPromoCode;
-        document.getElementById('editMinWins').value = requiredWinsForWithdraw;
-
-        const list = document.getElementById('cryptoListInputs');
-        list.innerHTML = '';
-        const options = document.getElementById('assetSelector').options;
-        for(let opt of options) {
-            list.innerHTML += `
-                <div class="admin-field">
-                    <label>${opt.text} Base Value</label>
-                    <input type="number" class="adm-crypto-input" data-symbol="${opt.value}" value="${opt.getAttribute('data-base')}" step="0.0001">
-                </div>`;
-        }
-        fetchAllUsersList(); // Fetch user list when admin panel opens
-    }
-
-    /* NEW TABS LOGIC FOR ADMIN MODAL */
-    function switchAdminTab(tab) {
-        if(tab === 'editor') {
-            document.getElementById('adminPanelEditorTab').className = 'tab-btn active';
-            document.getElementById('adminPanelUsersTab').className = 'tab-btn';
-            document.getElementById('adminEditorSection').style.display = 'block';
-            document.getElementById('adminUsersSection').style.display = 'none';
-        } else {
-            document.getElementById('adminPanelEditorTab').className = 'tab-btn';
-            document.getElementById('adminPanelUsersTab').className = 'tab-btn active';
-            document.getElementById('adminEditorSection').style.display = 'none';
-            document.getElementById('adminUsersSection').style.display = 'block';
-        }
-    }
-
-    /* NEW USER MANAGEMENT FUNCTIONS */
-    let allUsersDataCache = {};
-    async function fetchAllUsersList() {
-        const selector = document.getElementById('adminUserSelector');
-        selector.innerHTML = '<option value="">-- Select a User --</option>';
-        document.getElementById('adminUserDataFields').style.display = 'none';
-        document.getElementById('userSaveBtn').style.display = 'none';
-
-        try {
-            const snap = await db.ref('users').get();
-            if(snap.exists()) {
-                allUsersDataCache = snap.val();
-                Object.keys(allUsersDataCache).forEach(username => {
-                    selector.innerHTML += `<option value="${username}">${username}</option>`;
-                });
-            }
-        } catch(e) { console.error("Error fetching users list: ", e); }
-    }
-
-    function loadSelectedUserData() {
-        const selectedUser = document.getElementById('adminUserSelector').value;
-        const fieldsDiv = document.getElementById('adminUserDataFields');
-        const saveBtn = document.getElementById('userSaveBtn');
-
-        if(!selectedUser || !allUsersDataCache[selectedUser]) {
-            fieldsDiv.style.display = 'none';
-            saveBtn.style.display = 'none';
-            return;
-        }
-
-        const uData = allUsersDataCache[selectedUser];
-        document.getElementById('userEditBal').value = uData.balance || 0;
-        document.getElementById('userEditLvl').value = uData.level || 1;
-        document.getElementById('userEditXP').value = uData.xp || 0;
-        document.getElementById('userEditWins').value = uData.wins || 0;
-        document.getElementById('userEditTargetProgress').value = uData.withdrawTargetProgress || 0;
-
-        fieldsDiv.style.display = 'block';
-        saveBtn.style.display = 'block';
-    }
-
-    async function applyUserChanges() {
-        const selectedUser = document.getElementById('adminUserSelector').value;
-        if(!selectedUser) return;
-
-        const uBal = parseFloat(document.getElementById('userEditBal').value) || 0;
-        const uLvl = parseInt(document.getElementById('userEditLvl').value) || 1;
-        const uXP = parseInt(document.getElementById('userEditXP').value) || 0;
-        const uWins = parseInt(document.getElementById('userEditWins').value) || 0;
-        const uTarget = parseInt(document.getElementById('userEditTargetProgress').value) || 0;
-
-        try {
-            await db.ref('users/' + selectedUser).update({
-                balance: uBal,
-                level: uLvl,
-                xp: uXP,
-                wins: uWins,
-                withdrawTargetProgress: uTarget
-            });
-            
-            // If edited user is currently logged in, sync current session variables
-            if(currentUser === selectedUser) {
-                balance = uBal;
-                userLevel = uLvl;
-                userXP = uXP;
-                winCount = uWins;
-                withdrawTargetProgress = uTarget;
-                updateBalanceUI();
-                updateLevelUI();
-            }
-
-            alert(`User "${selectedUser}" data updated successfully!`);
-            fetchAllUsersList(); // Refresh dropdown cache
-        } catch(e) { alert("Failed to update user data."); }
-    }
-
-    function applyAdminChanges() {
-        balance = parseFloat(document.getElementById('editBal').value);
-        userLevel = parseInt(document.getElementById('editLvl').value);
-        userXP = parseInt(document.getElementById('editXP').value);
-        winCount = parseInt(document.getElementById('editWins').value);
-        withdrawTargetProgress = parseInt(document.getElementById('editWithdrawTargetProgress').value) || 0;
-        currentPromoCode = document.getElementById('editPromo').value.toUpperCase();
-        requiredWinsForWithdraw = parseInt(document.getElementById('editMinWins').value) || 0;
-        
-        db.ref('settings/min_wins_limit').set(requiredWinsForWithdraw);
-
-        if(currentUser && isLoggedIn) {
-            db.ref('users/' + currentUser).update({ balance, level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
-        }
-
-        const inputs = document.querySelectorAll('.adm-crypto-input');
-        inputs.forEach(input => {
-            const symbol = input.getAttribute('data-symbol');
-            const newVal = input.value;
-            const option = document.querySelector(`#assetSelector option[value="${symbol}"]`);
-            if(option) option.setAttribute('data-base', newVal);
-        });
-
-        updateBalanceUI();
-        updateLevelUI();
-        changeAsset();
-        closeAdminModals();
-    }
-
-    function closeAdminModals() {
-        document.getElementById('adminLoginModal').style.display = 'none';
-        document.getElementById('adminPanelModal').style.display = 'none';
-    }
-
-    function updateLevelUI() {
-        document.getElementById('levelText').innerText = userLevel;
-        document.getElementById('xpValText').innerText = userXP;
-        document.getElementById('winsText').innerText = winCount;
-        let xpTarget = userLevel * 100; 
-        document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
-        const barWidth = (userXP / xpTarget) * 100;
-        document.getElementById('xpBar').style.width = barWidth + "%";
-        
-        if(currentUser && isLoggedIn) {
-            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
-        }
-        updateWithdrawUI();
-    }
-
-    function addXP(amount) {
-        userXP += amount;
-        let xpTarget = userLevel * 100;
-        while (userXP >= xpTarget) { userXP -= xpTarget; userLevel++; xpTarget = userLevel * 100; }
-        updateLevelUI();
-    }
-
-    async function claimDailyBonus() {
-        if(!isLoggedIn || !currentUser) return;
-        const now = new Date().getTime();
-        const waitTime = 24 * 60 * 60 * 1000;
-        
-        if (now - lastBonusTime >= waitTime) {
-            const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-            balance += reward;
-            lastBonusTime = now;
-            await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
-            updateBalanceUI();
-            const modal = document.getElementById('resultModal');
-            document.getElementById('resultTitle').innerText = "DAILY BONUS!";
-            document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
-            modal.style.display = 'flex';
-            updateBonusTimer(); 
-            addXP(20);
-        }
-    }
-
-    function updateBonusTimer() {
-        if(!isLoggedIn || !currentUser) return;
-        const btn = document.getElementById('dailyBonusBtn');
-        const now = new Date().getTime();
-        const waitTime = 24 * 60 * 60 * 1000;
-        const timeLeft = waitTime - (now - lastBonusTime);
-        
-        if (timeLeft > 0) {
-            btn.disabled = true;
-            const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
-            const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
-            const secs = Math.floor((timeLeft / 1000) % 60);
-            btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
-        } else { 
-            btn.disabled = false; 
-            btn.innerText = "CLAIM DAILY BONUS"; 
-        }
     }
 
     function updatePrice() {
@@ -650,6 +361,8 @@
                     withdrawTargetProgress++;
                     updateBalanceUI(); 
                     updateLevelUI(); 
+                } else {
+                    updateBalanceUI(); // Sync logic inside updateBalanceUI handles standard DB updates
                 }
                 
                 const tradeRecord = { 
@@ -666,7 +379,6 @@
                 showTradeResult(won, activeTrade.amount);
                 activeTrade = null; addXP(10);
                 
-                // Refresh drawer UI instantly if open
                 if(document.getElementById('sideDrawer').classList.contains('open')) {
                     updateTradeHistoryUI();
                 }
@@ -693,8 +405,9 @@
     async function checkSession() {
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
-            try {
-                const snap = await db.ref('users/' + currentUser).get();
+            
+            // Listen live to logged-in user changes made by Admin
+            db.ref('users/' + currentUser).on('value', snap => {
                 if(snap.exists()) {
                     isLoggedIn = true;
                     let data = snap.val();
@@ -707,17 +420,77 @@
                     
                     document.getElementById('profileIdText').innerText = currentUser;
                     document.getElementById('authModal').style.display = 'none';
-                    updateBalanceUI(); 
+                    
+                    document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
+                    document.getElementById('levelText').innerText = userLevel;
+                    document.getElementById('xpValText').innerText = userXP;
+                    document.getElementById('winsText').innerText = winCount;
+                    
+                    let xpTarget = userLevel * 100; 
+                    document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
+                    document.getElementById('xpBar').style.width = ((userXP / xpTarget) * 100) + "%";
+                    
                     updateBonusTimer(); 
-                    updateLevelUI();
+                    updateWithdrawUI();
                 } else {
                     logout();
                 }
-            } catch(e) {
-                console.error("Database connection failed", e);
-            }
+            });
         } else { 
             document.getElementById('authModal').style.display = 'flex'; 
+        }
+    }
+
+    function updateLevelUI() {
+        let xpTarget = userLevel * 100;
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
+    }
+
+    function addXP(amount) {
+        userXP += amount;
+        let xpTarget = userLevel * 100;
+        while (userXP >= xpTarget) { userXP -= xpTarget; userLevel++; xpTarget = userLevel * 100; }
+        updateLevelUI();
+    }
+
+    async function claimDailyBonus() {
+        if(!isLoggedIn || !currentUser) return;
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        
+        if (now - lastBonusTime >= waitTime) {
+            const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+            balance += reward;
+            lastBonusTime = now;
+            await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
+            updateBalanceUI();
+            const modal = document.getElementById('resultModal');
+            document.getElementById('resultTitle').innerText = "DAILY BONUS!";
+            document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
+            modal.style.display = 'flex';
+            updateBonusTimer(); 
+            addXP(20);
+        }
+    }
+
+    function updateBonusTimer() {
+        if(!isLoggedIn || !currentUser) return;
+        const btn = document.getElementById('dailyBonusBtn');
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        const timeLeft = waitTime - (now - lastBonusTime);
+        
+        if (timeLeft > 0) {
+            btn.disabled = true;
+            const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
+            const secs = Math.floor((timeLeft / 1000) % 60);
+            btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
+        } else { 
+            btn.disabled = false; 
+            btn.innerText = "CLAIM DAILY BONUS"; 
         }
     }
 
@@ -744,14 +517,19 @@
         }
     }
 
-    function handleTransaction() {
+    async function handleTransaction() {
         const amount = parseFloat(document.getElementById('transAmount').value);
         const promo = document.getElementById('transPromo').value.trim().toUpperCase();
         const phone = document.getElementById('transPhone').value.trim();
 
         if(isNaN(amount) || amount <= 0) { alert("Invalid Amount!"); return; }
         if(!phone) { alert("Please enter JazzCash number!"); return; }
-        if(promo !== currentPromoCode) { alert("Invalid or Expired Promo Code!"); return; }
+        
+        // Fetch current promo live to prevent offline hacks
+        const pSnap = await db.ref('settings/current_promo').get();
+        const serverPromo = pSnap.exists() ? pSnap.val() : "AH9900";
+
+        if(promo !== serverPromo) { alert("Invalid or Expired Promo Code!"); return; }
 
         if(currentTransMode === 'withdraw') {
             if(withdrawTargetProgress < requiredWinsForWithdraw) return; 
@@ -761,8 +539,9 @@
 
         if(currentTransMode === 'deposit') balance += amount; else balance -= amount;
         
-        updateBalanceUI();
-        updateLevelUI();
+        if(currentUser && isLoggedIn) {
+            await db.ref('users/' + currentUser).update({ balance, withdrawTargetProgress });
+        }
 
         const transRecord = { 
             type: currentTransMode.toUpperCase(), 
@@ -807,19 +586,16 @@
         let user = document.getElementById('authUser').value.trim();
         const pass = document.getElementById('authPass').value.trim();
         if(!user || !pass) return;
-        
-        user = user.replace(/[\.\#\$\[\]]/g, ""); // Remove invalid Firebase keys
+        user = user.replace(/[\.\#\$\[\]]/g, ""); 
         
         const btn = document.getElementById('authSubmitBtn');
-        btn.innerText = "LOADING...";
-        btn.disabled = true;
+        btn.innerText = "LOADING..."; btn.disabled = true;
 
         try {
             if(currentAuthMode === 'register') { 
                 const snap = await db.ref('users/' + user).get();
-                if(snap.exists()) {
-                    alert("Username already exists!");
-                } else {
+                if(snap.exists()) { alert("Username already exists!"); } 
+                else {
                     await db.ref('users/' + user).set({pass, balance: 0, level: 1, xp: 0, wins: 0, withdrawTargetProgress: 0, last_bonus: 0});
                     alert("Registration Successful! Please Login.");
                     switchAuth('login');
@@ -830,17 +606,10 @@
                     localStorage.setItem('pp_session_active', 'true'); 
                     localStorage.setItem('pp_current_user', user); 
                     location.reload(); 
-                } else {
-                    alert("Invalid Username or Password!");
-                }
+                } else { alert("Invalid Username or Password!"); }
             }
-        } catch(e) {
-            console.error(e);
-            alert("Connection error!");
-        }
-        
-        btn.innerText = "CONTINUE";
-        btn.disabled = false;
+        } catch(e) { alert("Connection error!"); }
+        btn.innerText = "CONTINUE"; btn.disabled = false;
     }
     
     function switchTrans(m) { currentTransMode = m; document.getElementById('depTab').className = m === 'deposit' ? 'tab-btn active' : 'tab-btn'; document.getElementById('withTab').className = m === 'withdraw' ? 'tab-btn active' : 'tab-btn'; updateWithdrawUI(); }
