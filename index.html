@@ -305,17 +305,26 @@
         const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
 
-        // Center calculation fix: dynamic range limits based on current price
+        // Fixed point movement zoom: Dynamic bounds focused strictly on minor fraction offsets
         let highestOffset = 0;
         priceHistory.forEach(p => {
             let diff = Math.abs(p - currentPrice);
             if(diff > highestOffset) highestOffset = diff;
         });
-        if(highestOffset === 0) highestOffset = currentPrice * 0.001;
 
-        minPriceGlobal = currentPrice - (highestOffset * 1.1);
-        maxPriceGlobal = currentPrice + (highestOffset * 1.1);
+        // Auto fallback calculation if points are micro-scaled (Prevents flat lines)
+        const selector = document.getElementById('assetSelector');
+        const asset = selector ? selector.value : 'BTC';
+        let minimumAllowedRange = (asset === 'TON' || asset === 'XRP' || asset === 'PI') ? 0.002 : 0.5;
+        
+        if(highestOffset < minimumAllowedRange) {
+            highestOffset = minimumAllowedRange;
+        }
+
+        minPriceGlobal = currentPrice - highestOffset;
+        maxPriceGlobal = currentPrice + highestOffset;
         let range = maxPriceGlobal - minPriceGlobal;
+        if(range <= 0) range = 1;
         
         let stepX = (w / 2) / (priceHistory.length - 1);
         ctx.fillStyle = "rgba(120, 123, 134, 0.6)"; ctx.font = "10px Roboto";
@@ -323,7 +332,7 @@
         let priceLevels = 5;
         for(let g = 0; g <= priceLevels; g++) {
             let ratio = g / priceLevels;
-            let gridY = h - (ratio * h * 0.85) - (h * 0.05);
+            let gridY = h - (ratio * h * 0.80) - (h * 0.10);
             let gridPrice = minPriceGlobal + (ratio * range);
             ctx.fillText(gridPrice.toFixed(pricePrecision), w * 0.88, gridY - 4);
         }
@@ -336,38 +345,40 @@
             ctx.fillText(absoluteSec + "s", gridX + 5, h - 8);
         }
         
+        // Gradient Mountain Fill Rendering
         ctx.beginPath();
         priceHistory.forEach((p, i) => {
-            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
             if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.lineTo((priceHistory.length - 1) * stepX, h); ctx.lineTo(0, h); ctx.closePath();
         let grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        grad.addColorStop(0, 'rgba(0, 176, 255, 0.25)'); grad.addColorStop(1, 'rgba(0, 176, 255, 0)');
         ctx.fillStyle = grad; ctx.fill();
         
-        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff";
+        // Top Outline Vector
+        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#00b0ff";
         priceHistory.forEach((p, i) => {
-            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
             if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.stroke();
         
         if(activeTrade) {
-            let tradeY = h - ((activeTrade.price - minPriceGlobal) / range) * h;
+            let tradeY = h - ((activeTrade.price - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
             ctx.beginPath(); ctx.setLineDash([5, 5]);
             ctx.strokeStyle = activeTrade.type === 'CALL' ? '#00e676' : '#ff3d00';
             ctx.lineWidth = 1; ctx.moveTo(0, tradeY); ctx.lineTo(w, tradeY); ctx.stroke(); ctx.setLineDash([]);
             tradeTimer.style.top = (tradeY + canvas.offsetTop) + "px";
         }
         
-        let lastY = h - ((currentPrice - minPriceGlobal) / range) * h;
+        let lastY = h - ((currentPrice - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
         if(glowGrowing) { dotGlowRadius += 0.2; if(dotGlowRadius >= 12) glowGrowing = false; }
         else { dotGlowRadius -= 0.2; if(dotGlowRadius <= 4) glowGrowing = true; }
         ctx.beginPath(); ctx.arc(w/2, lastY, dotGlowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)"; ctx.fill();
+        ctx.fillStyle = "rgba(0, 176, 255, 0.2)"; ctx.fill();
         ctx.beginPath(); ctx.arc(w/2, lastY, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; ctx.fill();
+        ctx.fillStyle = "rgba(0, 176, 255, 0.4)"; ctx.fill();
         ctx.beginPath(); ctx.arc(w/2, lastY, 2.5, 0, Math.PI * 2);
         ctx.fillStyle = "#ffffff"; ctx.fill();
         
