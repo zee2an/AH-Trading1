@@ -174,8 +174,8 @@
     <div class="logo-group">
         <div class="logo">AH<span style="color:#fff"> TRADING</span></div>
         <select id="assetSelector" class="asset-select" onchange="changeAsset()">
-            <option value="BTC" data-base="80018.8" data-dev="20">BTC / USD</option>
-            <option value="ETH" data-base="2061.65" data-dev="1.5">ETH / USD</option>
+            <option value="BTC" data-base="61640.76" data-dev="8">BTC / USD</option>
+            <option value="ETH" data-base="2061.65" data-dev="0.8">ETH / USD</option>
             <option value="SOL" data-base="83.64" data-dev="0.05">SOL / USD</option>
             <option value="BNB" data-base="653.2" data-dev="0.2">BNB / USD</option>
             <option value="OKB" data-base="89.03" data-dev="0.1">OKB / USD</option>
@@ -216,7 +216,7 @@
     const db = firebase.database();
 
     let currentAuthMode = 'login', isLoggedIn = false, currentTransMode = 'deposit', currentUser = null;
-    let balance = 0, currentPrice = 75018.80, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
+    let balance = 0, currentPrice = 61640.76, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
     let dotGlowRadius = 4, glowGrowing = true;
     let userLevel = 1, userXP = 0, winCount = 0;
     
@@ -305,30 +305,35 @@
         const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
 
-        let highestOffset = 0;
+        // Calculate dynamic maximum offset deviation for smart-zooming
+        let maxDev = 0;
         priceHistory.forEach(p => {
-            let diff = Math.abs(p - currentPrice);
-            if(diff > highestOffset) highestOffset = diff;
+            let d = Math.abs(p - currentPrice);
+            if(d > maxDev) maxDev = d;
         });
 
+        // Safe auto scale padding configuration per asset structure
         const selector = document.getElementById('assetSelector');
         const asset = selector ? selector.value : 'BTC';
-        let minimumAllowedRange = (asset === 'TON' || asset === 'XRP' || asset === 'PI') ? 0.002 : 0.5;
-        
-        if(highestOffset < minimumAllowedRange) {
-            highestOffset = minimumAllowedRange;
+        let minimumAllowedRange = 0.5; 
+        if(asset === 'BTC') minimumAllowedRange = 15.0; // Dynamic bounding window for BTC
+        else if(asset === 'ETH') minimumAllowedRange = 2.0;
+        else if(asset === 'TON' || asset === 'XRP' || asset === 'PI') minimumAllowedRange = 0.003;
+
+        if(maxDev < minimumAllowedRange) {
+            maxDev = minimumAllowedRange;
         }
 
-        minPriceGlobal = currentPrice - highestOffset;
-        maxPriceGlobal = currentPrice + highestOffset;
+        minPriceGlobal = currentPrice - (maxDev * 1.2);
+        maxPriceGlobal = currentPrice + (maxDev * 1.2);
         let range = maxPriceGlobal - minPriceGlobal;
         if(range <= 0) range = 1;
         
-        // Horizontal step width for timeline mapping
+        // 82% area used for waves mapping to leave tight space for grid layout
         let stepX = (w * 0.82) / (priceHistory.length - 1);
         ctx.fillStyle = "rgba(120, 123, 134, 0.75)"; ctx.font = "bold 10px Roboto";
         
-        // Price grid indicators placed precisely right beside the wave line
+        // Compact price division markers rendering on the right axis structure
         let priceLevels = 5;
         for(let g = 0; g <= priceLevels; g++) {
             let ratio = g / priceLevels;
