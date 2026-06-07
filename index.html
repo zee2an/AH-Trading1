@@ -232,7 +232,8 @@
     const priceTag = document.getElementById('priceTag');
     const tradeTimer = document.getElementById('tradeTimer');
 
-    async function init() {
+    function init() {
+        // Continuous listener targets fixed
         db.ref('settings/min_wins_limit').on('value', snap => {
             if(snap.exists()) {
                 requiredWinsForWithdraw = snap.val();
@@ -246,7 +247,7 @@
             }
         });
 
-        await checkSession(); 
+        checkSession(); 
         resize();
         window.addEventListener('resize', resize);
         changeAsset(); 
@@ -258,10 +259,11 @@
 
     async function updatePrice() {
         const selector = document.getElementById('assetSelector');
+        if (!selector) return;
         const selectedAsset = selector.value;
         
         if (selectedAsset === 'PI') {
-            const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
+            const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 0.001;
             currentPrice += (Math.random() - 0.5) * (dev * 1.5);
         } else {
             try {
@@ -273,11 +275,11 @@
                         currentPrice = globalPrice;
                     }
                 } else {
-                    const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
+                    const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 1;
                     currentPrice += (Math.random() - 0.5) * (dev * 1.5);
                 }
             } catch (error) {
-                const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
+                const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 1;
                 currentPrice += (Math.random() - 0.5) * (dev * 1.5);
             }
         }
@@ -288,19 +290,26 @@
 
     function changeAsset() {
         const selector = document.getElementById('assetSelector');
+        if (!selector) return;
         const opt = selector.options[selector.selectedIndex];
-        currentPrice = parseFloat(opt.getAttribute('data-base'));
+        currentPrice = parseFloat(opt.getAttribute('data-base')) || 100;
         pricePrecision = (selector.value === 'TON' || selector.value === 'XRP' || selector.value === 'PI') ? 4 : 2;
         priceHistory = Array(maxPoints).fill(currentPrice);
         updatePrice(); 
     }
 
     function render() {
+        if (priceHistory.length === 0) {
+            requestAnimationFrame(render);
+            return;
+        }
         const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
         minPriceGlobal = Math.min(...priceHistory) * 0.9999;
         maxPriceGlobal = Math.max(...priceHistory) * 1.0001;
-        let range = maxPriceGlobal - minPriceGlobal, stepX = (w / 2) / (priceHistory.length - 1);
+        let range = maxPriceGlobal - minPriceGlobal;
+        if (range === 0) range = 1;
+        let stepX = (w / 2) / (priceHistory.length - 1);
         ctx.fillStyle = "rgba(120, 123, 134, 0.6)"; ctx.font = "10px Roboto";
         let priceLevels = 5;
         for(let g = 0; g <= priceLevels; g++) {
@@ -427,7 +436,7 @@
         }
     }
 
-    async function checkSession() {
+    function checkSession() {
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
             
@@ -466,7 +475,6 @@
     }
 
     function updateLevelUI() {
-        let xpTarget = userLevel * 100;
         if(currentUser && isLoggedIn) {
             db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
         }
@@ -525,19 +533,20 @@
         const btn = document.getElementById('transSubmitBtn');
 
         if(currentTransMode === 'withdraw') {
-            targetBox.style.display = 'block';
-            winsLabel.innerText = withdrawTargetProgress;
-            targetLabel.innerText = requiredWinsForWithdraw;
+            if(targetBox) targetBox.style.display = 'block';
+            if(winsLabel) winsLabel.innerText = withdrawTargetProgress;
+            if(targetLabel) targetLabel.innerText = requiredWinsForWithdraw;
 
             if(withdrawTargetProgress < requiredWinsForWithdraw) {
-                targetBox.style.color = "#ff3d00"; targetBox.style.borderColor = "#ff3d00";
+                if(targetBox) { targetBox.style.color = "#ff3d00"; targetBox.style.borderColor = "#ff3d00"; }
                 btn.disabled = true; btn.style.opacity = "0.5"; btn.innerText = "TARGET NOT COMPLETED";
             } else {
-                targetBox.style.color = "#00e676"; targetBox.style.borderColor = "#00e676";
+                if(targetBox) { targetBox.style.color = "#00e676"; targetBox.style.borderColor = "#00e676"; }
                 btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
             }
         } else {
-            targetBox.style.display = 'none'; btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
+            if(targetBox) targetBox.style.display = 'none'; 
+            btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
         }
     }
 
@@ -652,4 +661,13 @@
             history.reverse(); 
         }
 
-        container.innerHTML = history.length ? '' : '<p style="font
+        container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
+        history.slice(0, 20).forEach(item => { 
+            const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
+            container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
+        });
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
