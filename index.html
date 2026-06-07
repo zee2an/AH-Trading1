@@ -305,14 +305,12 @@
         const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
 
-        // Fixed point movement zoom: Dynamic bounds focused strictly on minor fraction offsets
         let highestOffset = 0;
         priceHistory.forEach(p => {
             let diff = Math.abs(p - currentPrice);
             if(diff > highestOffset) highestOffset = diff;
         });
 
-        // Auto fallback calculation if points are micro-scaled (Prevents flat lines)
         const selector = document.getElementById('assetSelector');
         const asset = selector ? selector.value : 'BTC';
         let minimumAllowedRange = (asset === 'TON' || asset === 'XRP' || asset === 'PI') ? 0.002 : 0.5;
@@ -326,21 +324,23 @@
         let range = maxPriceGlobal - minPriceGlobal;
         if(range <= 0) range = 1;
         
-        let stepX = (w / 2) / (priceHistory.length - 1);
-        ctx.fillStyle = "rgba(120, 123, 134, 0.6)"; ctx.font = "10px Roboto";
+        // Horizontal step width for timeline mapping
+        let stepX = (w * 0.82) / (priceHistory.length - 1);
+        ctx.fillStyle = "rgba(120, 123, 134, 0.75)"; ctx.font = "bold 10px Roboto";
         
+        // Price grid indicators placed precisely right beside the wave line
         let priceLevels = 5;
         for(let g = 0; g <= priceLevels; g++) {
             let ratio = g / priceLevels;
             let gridY = h - (ratio * h * 0.80) - (h * 0.10);
             let gridPrice = minPriceGlobal + (ratio * range);
-            ctx.fillText(gridPrice.toFixed(pricePrecision), w * 0.88, gridY - 4);
+            ctx.fillText(gridPrice.toFixed(pricePrecision), (w * 0.83), gridY + 3);
         }
         
         let timeLabelsCount = 4;
         for(let t = 0; t <= timeLabelsCount; t++) {
             let ratio = t / timeLabelsCount;
-            let gridX = ratio * (w / 2);
+            let gridX = ratio * (w * 0.82);
             let absoluteSec = (timeLabelsCount - t) * 5;
             ctx.fillText(absoluteSec + "s", gridX + 5, h - 8);
         }
@@ -375,11 +375,11 @@
         let lastY = h - ((currentPrice - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
         if(glowGrowing) { dotGlowRadius += 0.2; if(dotGlowRadius >= 12) glowGrowing = false; }
         else { dotGlowRadius -= 0.2; if(dotGlowRadius <= 4) glowGrowing = true; }
-        ctx.beginPath(); ctx.arc(w/2, lastY, dotGlowRadius, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc((w * 0.82), lastY, dotGlowRadius, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(0, 176, 255, 0.2)"; ctx.fill();
-        ctx.beginPath(); ctx.arc(w/2, lastY, 6, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc((w * 0.82), lastY, 6, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(0, 176, 255, 0.4)"; ctx.fill();
-        ctx.beginPath(); ctx.arc(w/2, lastY, 2.5, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc((w * 0.82), lastY, 2.5, 0, Math.PI * 2);
         ctx.fillStyle = "#ffffff"; ctx.fill();
         
         priceTag.style.top = (lastY + canvas.offsetTop - 12) + "px";
