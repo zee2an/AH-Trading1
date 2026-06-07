@@ -577,12 +577,15 @@
         if(!container) return;
         container.innerHTML = '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/transactions').orderByChild('timestamp').limitToLast(20).get();
+        const snap = await db.ref('history/' + currentUser + '/transactions').get();
         let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+        if(snap.exists()) { 
+            snap.forEach(child => { history.push(child.val()); }); 
+            history.reverse(); 
+        }
 
         container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
-        history.forEach(item => {
+        history.slice(0, 20).forEach(item => {
             const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
             container.innerHTML += `<div class="history-item"><div><span style="color: ${color}; font-weight: bold;">${item.type}</span><div style="font-size: 9px; color: #787b86;">${item.phone}</div></div><div style="text-align: right;"><span style="font-weight: bold;">Rs ${item.amount}</span><div style="font-size: 9px; color: #787b86;">${item.date}</div></div></div>`;
         });
@@ -631,12 +634,15 @@
         const container = document.getElementById('tradeHistoryList');
         container.innerHTML = '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/trades').orderByChild('timestamp').limitToLast(20).get();
+        const snap = await db.ref('history/' + currentUser + '/trades').get();
         let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+        if(snap.exists()) { 
+            snap.forEach(child => { history.push(child.val()); }); 
+            history.reverse(); 
+        }
 
         container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
-        history.forEach(item => { 
+        history.slice(0, 20).forEach(item => { 
             const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
             container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
         });
