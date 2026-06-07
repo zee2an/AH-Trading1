@@ -70,7 +70,7 @@
             flex: 1; position: relative; background-color: #0b0e16;
             background-image: linear-gradient(rgba(11, 14, 22, 0.6), rgba(11, 14, 22, 0.6)), url('file:///android_asset/earth.png');
             background-size: cover; background-repeat: no-repeat; background-position: center;
-            overflow: hidden; width: 100%; background-color: #0b0e16;
+            overflow: hidden; width: 100%;
         }
 
         #chart-container::before {
@@ -225,8 +225,6 @@
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
-    let winWindowSettings = { expiry: 0, limit: 0 };
-
     const canvas = document.getElementById('mainChart');
     const ctx = canvas.getContext('2d');
     const priceTag = document.getElementById('priceTag');
@@ -237,12 +235,6 @@
             if(snap.exists()) {
                 requiredWinsForWithdraw = snap.val();
                 updateWithdrawUI();
-            }
-        });
-
-        db.ref('settings/win_window_hack').on('value', snap => {
-            if(snap.exists()) {
-                winWindowSettings = snap.val();
             }
         });
 
@@ -273,12 +265,10 @@
         const selectedAsset = selector.value;
         
         if (selectedAsset === 'PI') {
-            // Pi network token standard Binance pe nahi ha, to ispe custom fluctuate algorithm hi chalega
             const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
             currentPrice += (Math.random() - 0.5) * (dev * 1.5);
         } else {
             try {
-                // Binance Global Public Ticker API endpoint call
                 const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${selectedAsset}USDT`);
                 if (response.ok) {
                     const data = await response.json();
@@ -287,7 +277,6 @@
                         currentPrice = globalPrice;
                     }
                 } else {
-                    // Fail-safe feedback loop agar network issues hon
                     const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
                     currentPrice += (Math.random() - 0.5) * (dev * 1.5);
                 }
@@ -307,7 +296,7 @@
         currentPrice = parseFloat(opt.getAttribute('data-base'));
         pricePrecision = (selector.value === 'TON' || selector.value === 'XRP' || selector.value === 'PI') ? 4 : 2;
         priceHistory = Array(maxPoints).fill(currentPrice);
-        updatePrice(); // Naye asset select hote hi instant rate updates call karega
+        updatePrice(); 
     }
 
     function render() {
@@ -385,14 +374,6 @@
                 tradeTimer.style.display = 'none';
                 
                 let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
-                
-                const currentTimeStamp = new Date().getTime();
-                if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
-                    if(activeTrade.amount < winWindowSettings.limit) {
-                        won = true; 
-                    }
-                }
-
                 const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
                 
                 if(won) { 
