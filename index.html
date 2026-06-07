@@ -420,7 +420,9 @@
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
             
-            db.ref('users/' + currentUser).on('value', snap => {
+            try {
+                // Fixed: Changed .on() to .get() to prevent Firebase from overwriting local state changes
+                const snap = await db.ref('users/' + currentUser).get();
                 if(snap.exists()) {
                     isLoggedIn = true;
                     let data = snap.val();
@@ -433,22 +435,17 @@
                     
                     document.getElementById('profileIdText').innerText = currentUser;
                     document.getElementById('authModal').style.display = 'none';
-                    
                     document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
-                    document.getElementById('levelText').innerText = userLevel;
-                    document.getElementById('xpValText').innerText = userXP;
-                    document.getElementById('winsText').innerText = winCount;
                     
-                    let xpTarget = userLevel * 100; 
-                    document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
-                    document.getElementById('xpBar').style.width = ((userXP / xpTarget) * 100) + "%";
-                    
+                    updateLevelUI(); // Instantly apply UI updates
                     updateBonusTimer(); 
                     updateWithdrawUI();
                 } else {
                     logout();
                 }
-            });
+            } catch (e) {
+                console.error("Session check error: ", e);
+            }
         } else { 
             document.getElementById('authModal').style.display = 'flex'; 
         }
@@ -456,6 +453,13 @@
 
     function updateLevelUI() {
         let xpTarget = userLevel * 100;
+        
+        // Fixed: Instantly update DOM directly whenever level, wins, or XP changes
+        document.getElementById('levelText').innerText = userLevel;
+        document.getElementById('winsText').innerText = winCount;
+        document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
+        document.getElementById('xpBar').style.width = ((userXP / xpTarget) * 100) + "%";
+
         if(currentUser && isLoggedIn) {
             db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
         }
