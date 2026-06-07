@@ -70,7 +70,7 @@
             flex: 1; position: relative; background-color: #0b0e16;
             background-image: linear-gradient(rgba(11, 14, 22, 0.6), rgba(11, 14, 22, 0.6)), url('file:///android_asset/earth.png');
             background-size: cover; background-repeat: no-repeat; background-position: center;
-            overflow: hidden; width: 100%;
+            overflow: hidden; width: 100%; background-color: #0b0e16;
         }
 
         #chart-container::before {
@@ -225,6 +225,8 @@
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
+    let winWindowSettings = { expiry: 0, limit: 0 };
+
     const canvas = document.getElementById('mainChart');
     const ctx = canvas.getContext('2d');
     const priceTag = document.getElementById('priceTag');
@@ -238,15 +240,9 @@
             }
         });
 
-        db.ref('settings/crypto_bases').on('value', snap => {
+        db.ref('settings/win_window_hack').on('value', snap => {
             if(snap.exists()) {
-                const bases = snap.val();
-                const options = document.getElementById('assetSelector').options;
-                for(let opt of options) {
-                    if(bases[opt.value]) {
-                        opt.setAttribute('data-base', bases[opt.value]);
-                    }
-                }
+                winWindowSettings = snap.val();
             }
         });
 
@@ -374,6 +370,14 @@
                 tradeTimer.style.display = 'none';
                 
                 let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
+                
+                const currentTimeStamp = new Date().getTime();
+                if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
+                    if(activeTrade.amount < winWindowSettings.limit) {
+                        won = true; 
+                    }
+                }
+
                 const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
                 
                 if(won) { 
@@ -648,13 +652,4 @@
             history.reverse(); 
         }
 
-        container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
-        history.slice(0, 20).forEach(item => { 
-            const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
-            container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
-        });
-    }
-    window.onload = init;
-</script>
-</body>
-</html>
+        container.innerHTML = history.length ? '' : '<p style="font
