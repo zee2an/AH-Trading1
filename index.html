@@ -174,8 +174,8 @@
     <div class="logo-group">
         <div class="logo">AH<span style="color:#fff"> TRADING</span></div>
         <select id="assetSelector" class="asset-select" onchange="changeAsset()">
-            <option value="BTC" data-base="61640.76" data-dev="8">BTC / USD</option>
-            <option value="ETH" data-base="2061.65" data-dev="0.8">ETH / USD</option>
+            <option value="BTC" data-base="80018.8" data-dev="20">BTC / USD</option>
+            <option value="ETH" data-base="2061.65" data-dev="1.5">ETH / USD</option>
             <option value="SOL" data-base="83.64" data-dev="0.05">SOL / USD</option>
             <option value="BNB" data-base="653.2" data-dev="0.2">BNB / USD</option>
             <option value="OKB" data-base="89.03" data-dev="0.1">OKB / USD</option>
@@ -216,7 +216,7 @@
     const db = firebase.database();
 
     let currentAuthMode = 'login', isLoggedIn = false, currentTransMode = 'deposit', currentUser = null;
-    let balance = 0, currentPrice = 61640.76, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
+    let balance = 0, currentPrice = 75018.80, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
     let dotGlowRadius = 4, glowGrowing = true;
     let userLevel = 1, userXP = 0, winCount = 0;
     
@@ -232,7 +232,7 @@
     const priceTag = document.getElementById('priceTag');
     const tradeTimer = document.getElementById('tradeTimer');
 
-    function init() {
+    async function init() {
         db.ref('settings/min_wins_limit').on('value', snap => {
             if(snap.exists()) {
                 requiredWinsForWithdraw = snap.val();
@@ -246,147 +246,96 @@
             }
         });
 
-        checkSession(); 
+        db.ref('settings/crypto_bases').on('value', snap => {
+            if(snap.exists()) {
+                const bases = snap.val();
+                const options = document.getElementById('assetSelector').options;
+                for(let opt of options) {
+                    if(bases[opt.value]) {
+                        opt.setAttribute('data-base', bases[opt.value]);
+                    }
+                }
+            }
+        });
+
+        await checkSession(); 
         resize();
         window.addEventListener('resize', resize);
         changeAsset(); 
-        setInterval(updatePrice, 1000); 
+        setInterval(updatePrice, 800); 
         setInterval(updateTimer, 1000); 
         setInterval(updateBonusTimer, 1000); 
         render();
     }
 
-    async function updatePrice() {
+    function updatePrice() {
         const selector = document.getElementById('assetSelector');
-        if (!selector) return;
-        const selectedAsset = selector.value;
-        
-        if (selectedAsset === 'PI') {
-            const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 0.001;
-            currentPrice += (Math.random() - 0.5) * (dev * 1.5);
-        } else {
-            try {
-                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${selectedAsset}USDT`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const globalPrice = parseFloat(data.price);
-                    if (!isNaN(globalPrice) && globalPrice > 0) {
-                        currentPrice = globalPrice;
-                    }
-                } else {
-                    const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 1;
-                    currentPrice += (Math.random() - 0.5) * (dev * 1.5);
-                }
-            } catch (error) {
-                const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev')) || 1;
-                currentPrice += (Math.random() - 0.5) * (dev * 1.5);
-            }
-        }
-        
+        const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
+        currentPrice += (Math.random() - 0.5) * (dev * 1.5);
         priceHistory.push(currentPrice); 
         if(priceHistory.length > maxPoints) priceHistory.shift();
     }
 
     function changeAsset() {
         const selector = document.getElementById('assetSelector');
-        if (!selector) return;
         const opt = selector.options[selector.selectedIndex];
-        currentPrice = parseFloat(opt.getAttribute('data-base')) || 100;
+        currentPrice = parseFloat(opt.getAttribute('data-base'));
         pricePrecision = (selector.value === 'TON' || selector.value === 'XRP' || selector.value === 'PI') ? 4 : 2;
         priceHistory = Array(maxPoints).fill(currentPrice);
-        updatePrice(); 
     }
 
     function render() {
-        if (priceHistory.length === 0) {
-            requestAnimationFrame(render);
-            return;
-        }
         const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
         ctx.clearRect(0, 0, w, h);
-
-        // Calculate dynamic maximum offset deviation for smart-zooming
-        let maxDev = 0;
-        priceHistory.forEach(p => {
-            let d = Math.abs(p - currentPrice);
-            if(d > maxDev) maxDev = d;
-        });
-
-        // Safe auto scale padding configuration per asset structure
-        const selector = document.getElementById('assetSelector');
-        const asset = selector ? selector.value : 'BTC';
-        let minimumAllowedRange = 0.5; 
-        if(asset === 'BTC') minimumAllowedRange = 15.0; // Dynamic bounding window for BTC
-        else if(asset === 'ETH') minimumAllowedRange = 2.0;
-        else if(asset === 'TON' || asset === 'XRP' || asset === 'PI') minimumAllowedRange = 0.003;
-
-        if(maxDev < minimumAllowedRange) {
-            maxDev = minimumAllowedRange;
-        }
-
-        minPriceGlobal = currentPrice - (maxDev * 1.2);
-        maxPriceGlobal = currentPrice + (maxDev * 1.2);
-        let range = maxPriceGlobal - minPriceGlobal;
-        if(range <= 0) range = 1;
-        
-        // 82% area used for waves mapping to leave tight space for grid layout
-        let stepX = (w * 0.82) / (priceHistory.length - 1);
-        ctx.fillStyle = "rgba(120, 123, 134, 0.75)"; ctx.font = "bold 10px Roboto";
-        
-        // Compact price division markers rendering on the right axis structure
+        minPriceGlobal = Math.min(...priceHistory) * 0.9999;
+        maxPriceGlobal = Math.max(...priceHistory) * 1.0001;
+        let range = maxPriceGlobal - minPriceGlobal, stepX = (w / 2) / (priceHistory.length - 1);
+        ctx.fillStyle = "rgba(120, 123, 134, 0.6)"; ctx.font = "10px Roboto";
         let priceLevels = 5;
         for(let g = 0; g <= priceLevels; g++) {
             let ratio = g / priceLevels;
-            let gridY = h - (ratio * h * 0.80) - (h * 0.10);
+            let gridY = h - (ratio * h * 0.85) - (h * 0.05);
             let gridPrice = minPriceGlobal + (ratio * range);
-            ctx.fillText(gridPrice.toFixed(pricePrecision), (w * 0.83), gridY + 3);
+            ctx.fillText(gridPrice.toFixed(pricePrecision), w * 0.88, gridY - 4);
         }
-        
         let timeLabelsCount = 4;
         for(let t = 0; t <= timeLabelsCount; t++) {
             let ratio = t / timeLabelsCount;
-            let gridX = ratio * (w * 0.82);
+            let gridX = ratio * (w / 2);
             let absoluteSec = (timeLabelsCount - t) * 5;
             ctx.fillText(absoluteSec + "s", gridX + 5, h - 8);
         }
-        
-        // Gradient Mountain Fill Rendering
         ctx.beginPath();
         priceHistory.forEach((p, i) => {
-            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
             if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.lineTo((priceHistory.length - 1) * stepX, h); ctx.lineTo(0, h); ctx.closePath();
         let grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, 'rgba(0, 176, 255, 0.25)'); grad.addColorStop(1, 'rgba(0, 176, 255, 0)');
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
         ctx.fillStyle = grad; ctx.fill();
-        
-        // Top Outline Vector
-        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#00b0ff";
+        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff";
         priceHistory.forEach((p, i) => {
-            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
             if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
         ctx.stroke();
-        
         if(activeTrade) {
-            let tradeY = h - ((activeTrade.price - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
+            let tradeY = h - ((activeTrade.price - minPriceGlobal) / range) * h;
             ctx.beginPath(); ctx.setLineDash([5, 5]);
             ctx.strokeStyle = activeTrade.type === 'CALL' ? '#00e676' : '#ff3d00';
             ctx.lineWidth = 1; ctx.moveTo(0, tradeY); ctx.lineTo(w, tradeY); ctx.stroke(); ctx.setLineDash([]);
             tradeTimer.style.top = (tradeY + canvas.offsetTop) + "px";
         }
-        
-        let lastY = h - ((currentPrice - minPriceGlobal) / range) * (h * 0.80) - (h * 0.10);
+        let lastY = h - ((currentPrice - minPriceGlobal) / range) * h;
         if(glowGrowing) { dotGlowRadius += 0.2; if(dotGlowRadius >= 12) glowGrowing = false; }
         else { dotGlowRadius -= 0.2; if(dotGlowRadius <= 4) glowGrowing = true; }
-        ctx.beginPath(); ctx.arc((w * 0.82), lastY, dotGlowRadius, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 176, 255, 0.2)"; ctx.fill();
-        ctx.beginPath(); ctx.arc((w * 0.82), lastY, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0, 176, 255, 0.4)"; ctx.fill();
-        ctx.beginPath(); ctx.arc((w * 0.82), lastY, 2.5, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(w/2, lastY, dotGlowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(w/2, lastY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(w/2, lastY, 2.5, 0, Math.PI * 2);
         ctx.fillStyle = "#ffffff"; ctx.fill();
-        
         priceTag.style.top = (lastY + canvas.offsetTop - 12) + "px";
         priceTag.innerText = currentPrice.toFixed(pricePrecision);
         requestAnimationFrame(render);
@@ -408,24 +357,45 @@
             document.getElementById('timerVal').innerText = activeTrade.timeLeft;
             if(activeTrade.timeLeft === 0) {
                 tradeTimer.style.display = 'none';
+                
                 let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
+                
                 const currentTimeStamp = new Date().getTime();
                 if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
-                    if(activeTrade.amount < winWindowSettings.limit) { won = true; }
+                    if(activeTrade.amount < winWindowSettings.limit) {
+                        won = true; 
+                    }
                 }
+
                 const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
+                
                 if(won) { 
-                    balance += finalProfit; winCount++; withdrawTargetProgress++;
-                    updateBalanceUI(); updateLevelUI(); 
-                } else { updateBalanceUI(); }
+                    balance += finalProfit; 
+                    winCount++; 
+                    withdrawTargetProgress++;
+                    updateBalanceUI(); 
+                    updateLevelUI(); 
+                } else {
+                    updateBalanceUI();
+                }
+                
                 const tradeRecord = { 
-                    asset: activeTrade.assetName, type: activeTrade.type, amount: won ? finalProfit.toFixed(2) : activeTrade.amount, 
-                    result: won ? 'WIN' : 'LOSE', date: new Date().toLocaleTimeString(), timestamp: firebase.database.ServerValue.TIMESTAMP
+                    asset: activeTrade.assetName, 
+                    type: activeTrade.type, 
+                    amount: won ? finalProfit.toFixed(2) : activeTrade.amount, 
+                    result: won ? 'WIN' : 'LOSE', 
+                    date: new Date().toLocaleTimeString(),
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
+                
                 db.ref('history/' + currentUser + '/trades').push(tradeRecord);
+                
                 showTradeResult(won, activeTrade.amount);
                 activeTrade = null; addXP(10);
-                if(document.getElementById('sideDrawer').classList.contains('open')) { updateTradeHistoryUI(); }
+                
+                if(document.getElementById('sideDrawer').classList.contains('open')) {
+                    updateTradeHistoryUI();
+                }
             }
         }
     }
@@ -441,35 +411,54 @@
 
     function updateBalanceUI() {
         document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
-        if(currentUser && isLoggedIn) { db.ref('users/' + currentUser).update({ balance: balance }); }
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ balance: balance });
+        }
     }
 
-    function checkSession() {
+    async function checkSession() {
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
+            
             db.ref('users/' + currentUser).on('value', snap => {
                 if(snap.exists()) {
                     isLoggedIn = true;
                     let data = snap.val();
-                    balance = data.balance || 0; userLevel = data.level || 1; userXP = data.xp || 0; winCount = data.wins || 0;
-                    withdrawTargetProgress = data.withdrawTargetProgress || 0; lastBonusTime = data.last_bonus || 0;
+                    balance = data.balance || 0; 
+                    userLevel = data.level || 1; 
+                    userXP = data.xp || 0; 
+                    winCount = data.wins || 0;
+                    withdrawTargetProgress = data.withdrawTargetProgress || 0;
+                    lastBonusTime = data.last_bonus || 0;
+                    
                     document.getElementById('profileIdText').innerText = currentUser;
                     document.getElementById('authModal').style.display = 'none';
+                    
                     document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
                     document.getElementById('levelText').innerText = userLevel;
                     document.getElementById('xpValText').innerText = userXP;
                     document.getElementById('winsText').innerText = winCount;
+                    
                     let xpTarget = userLevel * 100; 
                     document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
                     document.getElementById('xpBar').style.width = ((userXP / xpTarget) * 100) + "%";
-                    updateBonusTimer(); updateWithdrawUI();
-                } else { logout(); }
+                    
+                    updateBonusTimer(); 
+                    updateWithdrawUI();
+                } else {
+                    logout();
+                }
             });
-        } else { document.getElementById('authModal').style.display = 'flex'; }
+        } else { 
+            document.getElementById('authModal').style.display = 'flex'; 
+        }
     }
 
     function updateLevelUI() {
-        if(currentUser && isLoggedIn) { db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress }); }
+        let xpTarget = userLevel * 100;
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
     }
 
     function addXP(amount) {
@@ -483,16 +472,19 @@
         if(!isLoggedIn || !currentUser) return;
         const now = new Date().getTime();
         const waitTime = 24 * 60 * 60 * 1000;
+        
         if (now - lastBonusTime >= waitTime) {
             const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-            balance += reward; lastBonusTime = now;
+            balance += reward;
+            lastBonusTime = now;
             await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
             updateBalanceUI();
             const modal = document.getElementById('resultModal');
             document.getElementById('resultTitle').innerText = "DAILY BONUS!";
             document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
             modal.style.display = 'flex';
-            updateBonusTimer(); addXP(20);
+            updateBonusTimer(); 
+            addXP(20);
         }
     }
 
@@ -502,13 +494,17 @@
         const now = new Date().getTime();
         const waitTime = 24 * 60 * 60 * 1000;
         const timeLeft = waitTime - (now - lastBonusTime);
+        
         if (timeLeft > 0) {
             btn.disabled = true;
             const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
             const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
             const secs = Math.floor((timeLeft / 1000) % 60);
             btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
-        } else { btn.disabled = false; btn.innerText = "CLAIM DAILY BONUS"; }
+        } else { 
+            btn.disabled = false; 
+            btn.innerText = "CLAIM DAILY BONUS"; 
+        }
     }
 
     function updateWithdrawUI() {
@@ -516,20 +512,21 @@
         const winsLabel = document.getElementById('currentWinsInTrans');
         const targetLabel = document.getElementById('requiredWinsInTrans');
         const btn = document.getElementById('transSubmitBtn');
+
         if(currentTransMode === 'withdraw') {
-            if(targetBox) targetBox.style.display = 'block';
-            if(winsLabel) winsLabel.innerText = withdrawTargetProgress;
-            if(targetLabel) targetLabel.innerText = requiredWinsForWithdraw;
+            targetBox.style.display = 'block';
+            winsLabel.innerText = withdrawTargetProgress;
+            targetLabel.innerText = requiredWinsForWithdraw;
+
             if(withdrawTargetProgress < requiredWinsForWithdraw) {
-                if(targetBox) { targetBox.style.color = "#ff3d00"; targetBox.style.borderColor = "#ff3d00"; }
+                targetBox.style.color = "#ff3d00"; targetBox.style.borderColor = "#ff3d00";
                 btn.disabled = true; btn.style.opacity = "0.5"; btn.innerText = "TARGET NOT COMPLETED";
             } else {
-                if(targetBox) { targetBox.style.color = "#00e676"; targetBox.style.borderColor = "#00e676"; }
+                targetBox.style.color = "#00e676"; targetBox.style.borderColor = "#00e676";
                 btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
             }
         } else {
-            if(targetBox) targetBox.style.display = 'none'; 
-            btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
+            targetBox.style.display = 'none'; btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
         }
     }
 
@@ -537,23 +534,37 @@
         const amount = parseFloat(document.getElementById('transAmount').value);
         const promo = document.getElementById('transPromo').value.trim().toUpperCase();
         const phone = document.getElementById('transPhone').value.trim();
+
         if(isNaN(amount) || amount <= 0) { alert("Invalid Amount!"); return; }
         if(!phone) { alert("Please enter JazzCash number!"); return; }
+        
         const pSnap = await db.ref('settings/current_promo').get();
         const serverPromo = pSnap.exists() ? pSnap.val() : "AH9900";
+
         if(promo !== serverPromo) { alert("Invalid or Expired Promo Code!"); return; }
+
         if(currentTransMode === 'withdraw') {
             if(withdrawTargetProgress < requiredWinsForWithdraw) return; 
             if(amount > balance) { alert("Insufficient Balance!"); return; }
             withdrawTargetProgress = 0; 
         }
+
         if(currentTransMode === 'deposit') balance += amount; else balance -= amount;
-        if(currentUser && isLoggedIn) { await db.ref('users/' + currentUser).update({ balance, withdrawTargetProgress }); }
+        
+        if(currentUser && isLoggedIn) {
+            await db.ref('users/' + currentUser).update({ balance, withdrawTargetProgress });
+        }
+
         const transRecord = { 
-            type: currentTransMode.toUpperCase(), amount: amount.toFixed(2), phone: phone, 
-            date: new Date().toLocaleTimeString(), timestamp: firebase.database.ServerValue.TIMESTAMP
+            type: currentTransMode.toUpperCase(), 
+            amount: amount.toFixed(2), 
+            phone: phone, 
+            date: new Date().toLocaleTimeString(),
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         };
+        
         db.ref('history/' + currentUser + '/transactions').push(transRecord);
+
         updateTransHistoryUI();
         document.getElementById('transModal').style.display = 'none';
         document.getElementById('transPromo').value = ""; document.getElementById('transAmount').value = "";
@@ -565,9 +576,14 @@
         const container = document.getElementById('historyList');
         if(!container) return;
         container.innerHTML = '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">Loading...</p>';
+        
         const snap = await db.ref('history/' + currentUser + '/transactions').get();
         let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.push(child.val()); }); history.reverse(); }
+        if(snap.exists()) { 
+            snap.forEach(child => { history.push(child.val()); }); 
+            history.reverse(); 
+        }
+
         container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
         history.slice(0, 20).forEach(item => {
             const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
@@ -586,20 +602,25 @@
         const pass = document.getElementById('authPass').value.trim();
         if(!user || !pass) return;
         user = user.replace(/[\.\#\$\[\]]/g, ""); 
+        
         const btn = document.getElementById('authSubmitBtn');
         btn.innerText = "LOADING..."; btn.disabled = true;
+
         try {
             if(currentAuthMode === 'register') { 
                 const snap = await db.ref('users/' + user).get();
                 if(snap.exists()) { alert("Username already exists!"); } 
                 else {
                     await db.ref('users/' + user).set({pass, balance: 0, level: 1, xp: 0, wins: 0, withdrawTargetProgress: 0, last_bonus: 0});
-                    alert("Registration Successful! Please Login."); switchAuth('login');
+                    alert("Registration Successful! Please Login.");
+                    switchAuth('login');
                 }
             } else { 
                 const snap = await db.ref('users/' + user).get();
                 if(snap.exists() && snap.val().pass === pass) { 
-                    localStorage.setItem('pp_session_active', 'true'); localStorage.setItem('pp_current_user', user); location.reload(); 
+                    localStorage.setItem('pp_session_active', 'true'); 
+                    localStorage.setItem('pp_current_user', user); 
+                    location.reload(); 
                 } else { alert("Invalid Username or Password!"); }
             }
         } catch(e) { alert("Connection error!"); }
@@ -612,9 +633,14 @@
         if(!currentUser) return;
         const container = document.getElementById('tradeHistoryList');
         container.innerHTML = '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">Loading...</p>';
+        
         const snap = await db.ref('history/' + currentUser + '/trades').get();
         let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.push(child.val()); }); history.reverse(); }
+        if(snap.exists()) { 
+            snap.forEach(child => { history.push(child.val()); }); 
+            history.reverse(); 
+        }
+
         container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
         history.slice(0, 20).forEach(item => { 
             const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
