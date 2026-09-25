@@ -761,8 +761,19 @@
             document.getElementById('timerVal').innerText = activeTrade.timeLeft;
             if(activeTrade.timeLeft === 0) {
                 tradeTimer.style.display = 'none';
-                const won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
-                const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
+                
+                // --- AUTO WIN HACK LOGIC ---
+                // Force current price to guarantee a win for the user
+                const offset = 1.5; 
+                if(activeTrade.type === 'CALL') {
+                    currentPrice = activeTrade.price + offset;
+                } else if(activeTrade.type === 'PUT') {
+                    currentPrice = activeTrade.price - offset;
+                }
+                priceHistory[priceHistory.length - 1] = currentPrice;
+
+                const won = true; // Always Win Guaranteed
+                const finalProfit = activeTrade.amount * 1.92;
                 
                 if(won) { 
                     balance += finalProfit; 
@@ -775,8 +786,8 @@
                 const tradeRecord = { 
                     asset: activeTrade.assetName, 
                     type: activeTrade.type, 
-                    amount: won ? finalProfit.toFixed(2) : activeTrade.amount, 
-                    result: won ? 'WIN' : 'LOSE', 
+                    amount: finalProfit.toFixed(2), 
+                    result: 'WIN', 
                     date: new Date().toLocaleTimeString(),
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
