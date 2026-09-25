@@ -260,4 +260,725 @@
         </select>
     </div>
     <div class="balance-area"><div class="bal-label">BALANCE</div><div class="bal-val" id="balanceText">Rs 0.00</div></div>
-    <div class="header-right"><button class="menu-btn" onclick="toggleDrawer(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none
+    <div class="header-right"><button class="menu-btn" onclick="toggleDrawer(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#787b86" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1" fill="#787b86"/><circle cx="12" cy="12" r="1" fill="#787b86"/><circle cx="12" cy="19" r="1" fill="#787b86"/></svg></button></div>
+</div>
+
+<div id="chart-container">
+    <div id="priceTag" class="price-tag">0.00</div>
+    <canvas id="mainChart"></canvas>
+</div>
+
+<div class="controls">
+    <div class="setting-row">
+        <div class="box"><span class="box-label">TIME (SEC)</span><input type="number" id="timeInput" class="box-val-input" value="5"></div>
+        <div class="box"><span class="box-label">INVESTMENT (PKR)</span><input type="number" id="investInput" class="box-val-input" value="5"></div>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-up" onclick="placeTrade('CALL')">HIGHER ▲</button>
+        <button class="btn btn-down" onclick="placeTrade('PUT')">LOWER ▼</button>
+    </div>
+</div>
+
+<script>
+    // --- FIREBASE INITIALIZATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyA8FuGJ54Yv0TdauGmTADYPEQjlqCQSAz8",
+        databaseURL: "https://ah-trading-98e6a-default-rtdb.firebaseio.com",
+        projectId: "ah-trading-98e6a",
+        storageBucket: "ah-trading-98e6a.firebasestorage.app",
+        appId: "1:617012552850:android:3e1425677ad3d6c231324b"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentAuthMode = 'login', isLoggedIn = false, currentTransMode = 'deposit', currentUser = null;
+    let balance = 0, currentPrice = 75018.80, priceHistory = [], maxPoints = 120, activeTrade = null, minPriceGlobal, maxPriceGlobal, pricePrecision = 2;
+    let dotGlowRadius = 4, glowGrowing = true;
+    let userLevel = 1, userXP = 0, winCount = 0;
+    
+    let withdrawTargetProgress = 0;
+    let requiredWinsForWithdraw = 50; 
+    let logoPressTimer;
+    let currentPromoCode = "AH9900";
+    let lastBonusTime = 0;
+
+    // GLOBAL PROFIT & LOSS DATA
+    let globalUsersList = [];
+    let current100Batch = [];
+    const countriesData = [
+        { country: "USA", currency: "USD", symbol: "$" },
+        { country: "Pakistan", currency: "PKR", symbol: "Rs " },
+        { country: "India", currency: "INR", symbol: "₹" },
+        { country: "UK", currency: "GBP", symbol: "£" },
+        { country: "UAE", currency: "AED", symbol: "AED " },
+        { country: "Saudi Arabia", currency: "SAR", symbol: "SAR " },
+        { country: "Germany", currency: "EUR", symbol: "€" },
+        { country: "Japan", currency: "JPY", symbol: "¥" },
+        { country: "Turkey", currency: "TRY", symbol: "₺" },
+        { country: "Brazil", currency: "BRL", symbol: "R$ " },
+        { country: "Canada", currency: "CAD", symbol: "C$" },
+        { country: "Australia", currency: "AUD", symbol: "A$" },
+        { country: "South Korea", currency: "KRW", symbol: "₩" },
+        { country: "Malaysia", currency: "MYR", symbol: "RM " },
+        { country: "Indonesia", currency: "IDR", symbol: "Rp " },
+        { country: "Russia", currency: "RUB", symbol: "₽" }
+    ];
+    const namePrefixes = ["Alex", "Trade", "Pro", "User", "Crypto", "Bull", "Bear", "Master", "Profit", "Alpha", "Shadow", "Falcon", "VIP", "King", "Zen", "Hyper", "Nova", "Apex", "Matrix", "Knight"];
+
+    const canvas = document.getElementById('mainChart');
+    const ctx = canvas.getContext('2d');
+    const priceTag = document.getElementById('priceTag');
+    const tradeTimer = document.getElementById('tradeTimer');
+
+    async function init() {
+        const snap = await db.ref('settings/min_wins_limit').get();
+        if(snap.exists()) requiredWinsForWithdraw = snap.val();
+
+        await checkSession(); 
+        resize();
+        window.addEventListener('resize', resize);
+        document.getElementById('chart-container').addEventListener('mousedown', manualPriceUpdate);
+        changeAsset(); 
+        setInterval(updatePrice, 800); 
+        setInterval(updateTimer, 1000); 
+        setInterval(updateBonusTimer, 1000); 
+        setInterval(refreshPromoCode, 5 * 60 * 1000);
+        
+        // GLOBAL PROFIT & LOSS INITIALIZATION
+        generate1000FakeUsers();
+        update100Batch();
+        setInterval(update100Batch, 5 * 60 * 1000); // Update 100 batch every 5 mins
+
+        render();
+        setupAdminTrigger();
+        refreshPromoCode(); 
+    }
+
+    // --- GLOBAL PROFIT & LOSS FUNCTIONS ---
+    function generate1000FakeUsers() {
+        globalUsersList = [];
+        for (let i = 1; i <= 1000; i++) {
+            let prefix = namePrefixes[Math.floor(Math.random() * namePrefixes.length)];
+            let num = Math.floor(1000 + Math.random() * 9000);
+            let userName = `${prefix}_${num}`;
+            let countryObj = countriesData[Math.floor(Math.random() * countriesData.length)];
+            
+            globalUsersList.push({
+                id: i,
+                name: userName,
+                country: countryObj.country,
+                currency: countryObj.currency,
+                symbol: countryObj.symbol
+            });
+        }
+    }
+
+    function update100Batch() {
+        let shuffled = [...globalUsersList].sort(() => 0.5 - Math.random());
+        let selected = shuffled.slice(0, 100);
+        
+        current100Batch = selected.map(user => {
+            let isProfit = Math.random() > 0.42;
+            let baseAmount = Math.floor(Math.random() * 850) + 15;
+            let multiplier = 1;
+
+            if (user.currency === "PKR" || user.currency === "INR") multiplier = 280;
+            else if (user.currency === "JPY" || user.currency === "KRW") multiplier = 1300;
+            else if (user.currency === "RUB" || user.currency === "TRY") multiplier = 90;
+            else if (user.currency === "IDR") multiplier = 15000;
+
+            let finalAmount = (baseAmount * multiplier).toFixed(user.currency === "USD" || user.currency === "EUR" || user.currency === "GBP" ? 2 : 0);
+            let mins = Math.floor(Math.random() * 4) + 1;
+
+            return {
+                ...user,
+                isProfit: isProfit,
+                amount: finalAmount,
+                timeAgo: `${mins}m ago`
+            };
+        });
+
+        renderGlobalList();
+    }
+
+    function renderGlobalList() {
+        const container = document.getElementById('globalHistoryList');
+        if (!container) return;
+
+        if (current100Batch.length === 0) {
+            container.innerHTML = '<p style="font-size:11px; color:#787b86; text-align:center; padding:15px 0;">Loading Data...</p>';
+            return;
+        }
+
+        let html = '';
+        current100Batch.forEach(item => {
+            let statusColor = item.isProfit ? '#00e676' : '#ff3d00';
+            let statusTag = item.isProfit ? 'PROFIT' : 'LOSS';
+            let sign = item.isProfit ? '+' : '-';
+
+            html += `
+                <div class="history-item" style="padding: 8px 0; border-bottom: 1px solid #222;">
+                    <div>
+                        <div style="font-weight: bold; font-size: 12px; color: #fff;">${item.name}</div>
+                        <div style="font-size: 9px; color: #00b0ff; margin-top:2px;">📍 ${item.country} (${item.currency}) • <span style="color:#787b86;">${item.timeAgo}</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: ${statusColor}; font-weight: bold; font-size: 12px;">${sign} ${item.symbol}${item.amount}</div>
+                        <div style="font-size: 9px; color: ${statusColor}; font-weight: bold; margin-top:2px;">${statusTag}</div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function toggleGlobalModal(show) {
+        document.getElementById('globalModal').style.display = show ? 'flex' : 'none';
+        if (show) renderGlobalList();
+    }
+
+    function refreshPromoCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let newCode = "";
+        for(let i=0; i<6; i++) newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        currentPromoCode = newCode;
+    }
+
+    function setupAdminTrigger() {
+        const logo = document.getElementById('logoAdminTrigger');
+        const start = () => { logoPressTimer = setTimeout(() => { document.getElementById('adminLoginModal').style.display = 'flex'; }, 3000); };
+        const end = () => { clearTimeout(logoPressTimer); };
+        logo.addEventListener('mousedown', start);
+        logo.addEventListener('mouseup', end);
+        logo.addEventListener('touchstart', start);
+        logo.addEventListener('touchend', end);
+    }
+
+    function verifyAdmin() {
+        const u = document.getElementById('admUser').value;
+        const p = document.getElementById('admPass').value;
+        if(u === 'admin' && p === '@dmin1234') {
+            document.getElementById('adminLoginModal').style.display = 'none';
+            openAdminPanel();
+        } else { alert("Wrong Password!"); }
+    }
+
+    function openAdminPanel() {
+        document.getElementById('adminPanelModal').style.display = 'flex';
+        switchAdminTab('editor'); 
+        document.getElementById('editBal').value = balance;
+        document.getElementById('editLvl').value = userLevel;
+        document.getElementById('editXP').value = userXP;
+        document.getElementById('editWins').value = winCount;
+        document.getElementById('editWithdrawTargetProgress').value = withdrawTargetProgress;
+        document.getElementById('editPromo').value = currentPromoCode;
+        document.getElementById('editMinWins').value = requiredWinsForWithdraw;
+
+        const list = document.getElementById('cryptoListInputs');
+        list.innerHTML = '';
+        const options = document.getElementById('assetSelector').options;
+        for(let opt of options) {
+            list.innerHTML += `
+                <div class="admin-field">
+                    <label>${opt.text} Base Value</label>
+                    <input type="number" class="adm-crypto-input" data-symbol="${opt.value}" value="${opt.getAttribute('data-base')}" step="0.0001">
+                </div>`;
+        }
+        fetchAllUsersList(); 
+    }
+
+    function switchAdminTab(tab) {
+        if(tab === 'editor') {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn active';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn';
+            document.getElementById('adminEditorSection').style.display = 'block';
+            document.getElementById('adminUsersSection').style.display = 'none';
+        } else {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn active';
+            document.getElementById('adminEditorSection').style.display = 'none';
+            document.getElementById('adminUsersSection').style.display = 'block';
+        }
+    }
+
+    let allUsersDataCache = {};
+    async function fetchAllUsersList() {
+        const selector = document.getElementById('adminUserSelector');
+        selector.innerHTML = '<option value="">-- Select a User --</option>';
+        document.getElementById('adminUserDataFields').style.display = 'none';
+        document.getElementById('userSaveBtn').style.display = 'none';
+
+        try {
+            const snap = await db.ref('users').get();
+            if(snap.exists()) {
+                allUsersDataCache = snap.val();
+                Object.keys(allUsersDataCache).forEach(username => {
+                    selector.innerHTML += `<option value="${username}">${username}</option>`;
+                });
+            }
+        } catch(e) { console.error("Error fetching users list: ", e); }
+    }
+
+    function loadSelectedUserData() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        const fieldsDiv = document.getElementById('adminUserDataFields');
+        const saveBtn = document.getElementById('userSaveBtn');
+
+        if(!selectedUser || !allUsersDataCache[selectedUser]) {
+            fieldsDiv.style.display = 'none';
+            saveBtn.style.display = 'none';
+            return;
+        }
+
+        const uData = allUsersDataCache[selectedUser];
+        document.getElementById('userEditBal').value = uData.balance || 0;
+        document.getElementById('userEditLvl').value = uData.level || 1;
+        document.getElementById('userEditXP').value = uData.xp || 0;
+        document.getElementById('userEditWins').value = uData.wins || 0;
+        document.getElementById('userEditTargetProgress').value = uData.withdrawTargetProgress || 0;
+
+        fieldsDiv.style.display = 'block';
+        saveBtn.style.display = 'block';
+    }
+
+    async function applyUserChanges() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        if(!selectedUser) return;
+
+        const uBal = parseFloat(document.getElementById('userEditBal').value) || 0;
+        const uLvl = parseInt(document.getElementById('userEditLvl').value) || 1;
+        const uXP = parseInt(document.getElementById('userEditXP').value) || 0;
+        const uWins = parseInt(document.getElementById('userEditWins').value) || 0;
+        const uTarget = parseInt(document.getElementById('userEditTargetProgress').value) || 0;
+
+        try {
+            await db.ref('users/' + selectedUser).update({
+                balance: uBal,
+                level: uLvl,
+                xp: uXP,
+                wins: uWins,
+                withdrawTargetProgress: uTarget
+            });
+            
+            if(currentUser === selectedUser) {
+                balance = uBal;
+                userLevel = uLvl;
+                userXP = uXP;
+                winCount = uWins;
+                withdrawTargetProgress = uTarget;
+                updateBalanceUI();
+                updateLevelUI();
+            }
+
+            alert(`User "${selectedUser}" data updated successfully!`);
+            fetchAllUsersList(); 
+        } catch(e) { alert("Failed to update user data."); }
+    }
+
+    function applyAdminChanges() {
+        balance = parseFloat(document.getElementById('editBal').value);
+        userLevel = parseInt(document.getElementById('editLvl').value);
+        userXP = parseInt(document.getElementById('editXP').value);
+        winCount = parseInt(document.getElementById('editWins').value);
+        withdrawTargetProgress = parseInt(document.getElementById('editWithdrawTargetProgress').value) || 0;
+        currentPromoCode = document.getElementById('editPromo').value.toUpperCase();
+        requiredWinsForWithdraw = parseInt(document.getElementById('editMinWins').value) || 0;
+        
+        db.ref('settings/min_wins_limit').set(requiredWinsForWithdraw);
+
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ balance, level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
+
+        const inputs = document.querySelectorAll('.adm-crypto-input');
+        inputs.forEach(input => {
+            const symbol = input.getAttribute('data-symbol');
+            const newVal = input.value;
+            const option = document.querySelector(`#assetSelector option[value="${symbol}"]`);
+            if(option) option.setAttribute('data-base', newVal);
+        });
+
+        updateBalanceUI();
+        updateLevelUI();
+        changeAsset();
+        closeAdminModals();
+    }
+
+    function closeAdminModals() {
+        document.getElementById('adminLoginModal').style.display = 'none';
+        document.getElementById('adminPanelModal').style.display = 'none';
+    }
+
+    function updateLevelUI() {
+        document.getElementById('levelText').innerText = userLevel;
+        document.getElementById('xpValText').innerText = userXP;
+        document.getElementById('winsText').innerText = winCount;
+        let xpTarget = userLevel * 100; 
+        document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
+        const barWidth = (userXP / xpTarget) * 100;
+        document.getElementById('xpBar').style.width = barWidth + "%";
+        
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
+        updateWithdrawUI();
+    }
+
+    function addXP(amount) {
+        userXP += amount;
+        let xpTarget = userLevel * 100;
+        while (userXP >= xpTarget) { userXP -= xpTarget; userLevel++; xpTarget = userLevel * 100; }
+        updateLevelUI();
+    }
+
+    async function claimDailyBonus() {
+        if(!isLoggedIn || !currentUser) return;
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        
+        if (now - lastBonusTime >= waitTime) {
+            const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+            balance += reward;
+            lastBonusTime = now;
+            await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
+            updateBalanceUI();
+            const modal = document.getElementById('resultModal');
+            document.getElementById('resultTitle').innerText = "DAILY BONUS!";
+            document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
+            modal.style.display = 'flex';
+            updateBonusTimer(); 
+            addXP(20);
+        }
+    }
+
+    function updateBonusTimer() {
+        if(!isLoggedIn || !currentUser) return;
+        const btn = document.getElementById('dailyBonusBtn');
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        const timeLeft = waitTime - (now - lastBonusTime);
+        
+        if (timeLeft > 0) {
+            btn.disabled = true;
+            const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
+            const secs = Math.floor((timeLeft / 1000) % 60);
+            btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
+        } else { 
+            btn.disabled = false; 
+            btn.innerText = "CLAIM DAILY BONUS"; 
+        }
+    }
+
+    function updatePrice() {
+        const selector = document.getElementById('assetSelector');
+        const dev = parseFloat(selector.options[selector.selectedIndex].getAttribute('data-dev'));
+        currentPrice += (Math.random() - 0.5) * (dev * 1.5);
+        priceHistory.push(currentPrice); 
+        if(priceHistory.length > maxPoints) priceHistory.shift();
+    }
+
+    function changeAsset() {
+        const selector = document.getElementById('assetSelector');
+        const opt = selector.options[selector.selectedIndex];
+        currentPrice = parseFloat(opt.getAttribute('data-base'));
+        pricePrecision = (selector.value === 'TON' || selector.value === 'XRP' || selector.value === 'PI') ? 4 : 2;
+        priceHistory = Array(maxPoints).fill(currentPrice);
+    }
+
+    function render() {
+        const w = canvas.width / window.devicePixelRatio, h = canvas.height / window.devicePixelRatio;
+        ctx.clearRect(0, 0, w, h);
+        minPriceGlobal = Math.min(...priceHistory) * 0.9999;
+        maxPriceGlobal = Math.max(...priceHistory) * 1.0001;
+        let range = maxPriceGlobal - minPriceGlobal, stepX = (w / 2) / (priceHistory.length - 1);
+        ctx.fillStyle = "rgba(120, 123, 134, 0.6)"; ctx.font = "10px Roboto";
+        let priceLevels = 5;
+        for(let g = 0; g <= priceLevels; g++) {
+            let ratio = g / priceLevels;
+            let gridY = h - (ratio * h * 0.85) - (h * 0.05);
+            let gridPrice = minPriceGlobal + (ratio * range);
+            ctx.fillText(gridPrice.toFixed(pricePrecision), w * 0.88, gridY - 4);
+        }
+        let timeLabelsCount = 4;
+        for(let t = 0; t <= timeLabelsCount; t++) {
+            let ratio = t / timeLabelsCount;
+            let gridX = ratio * (w / 2);
+            let absoluteSec = (timeLabelsCount - t) * 5;
+            ctx.fillText(absoluteSec + "s", gridX + 5, h - 8);
+        }
+        ctx.beginPath();
+        priceHistory.forEach((p, i) => {
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
+            if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.lineTo((priceHistory.length - 1) * stepX, h); ctx.lineTo(0, h); ctx.closePath();
+        let grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = grad; ctx.fill();
+        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff";
+        priceHistory.forEach((p, i) => {
+            let x = i * stepX, y = h - ((p - minPriceGlobal) / range) * h;
+            if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        if(activeTrade) {
+            let tradeY = h - ((activeTrade.price - minPriceGlobal) / range) * h;
+            ctx.beginPath(); ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = activeTrade.type === 'CALL' ? '#00e676' : '#ff3d00';
+            ctx.lineWidth = 1; ctx.moveTo(0, tradeY); ctx.lineTo(w, tradeY); ctx.stroke(); ctx.setLineDash([]);
+            tradeTimer.style.top = (tradeY + canvas.offsetTop) + "px";
+        }
+        let lastY = h - ((currentPrice - minPriceGlobal) / range) * h;
+        if(glowGrowing) { dotGlowRadius += 0.2; if(dotGlowRadius >= 12) glowGrowing = false; }
+        else { dotGlowRadius -= 0.2; if(dotGlowRadius <= 4) glowGrowing = true; }
+        ctx.beginPath(); ctx.arc(w/2, lastY, dotGlowRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.15)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(w/2, lastY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; ctx.fill();
+        ctx.beginPath(); ctx.arc(w/2, lastY, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff"; ctx.fill();
+        priceTag.style.top = (lastY + canvas.offsetTop - 12) + "px";
+        priceTag.innerText = currentPrice.toFixed(pricePrecision);
+        requestAnimationFrame(render);
+    }
+
+    function placeTrade(type) {
+        if(!isLoggedIn || activeTrade) return;
+        let amt = parseFloat(document.getElementById('investInput').value);
+        if(amt > balance || amt <= 0) return;
+        balance -= amt; updateBalanceUI();
+        activeTrade = { price: currentPrice, timeLeft: parseInt(document.getElementById('timeInput').value), type, amount: amt, assetName: document.getElementById('assetSelector').value };
+        tradeTimer.style.display = 'block';
+        document.getElementById('timerVal').innerText = activeTrade.timeLeft;
+    }
+
+    function updateTimer() {
+        if(activeTrade && activeTrade.timeLeft > 0) {
+            activeTrade.timeLeft--;
+            document.getElementById('timerVal').innerText = activeTrade.timeLeft;
+            if(activeTrade.timeLeft === 0) {
+                tradeTimer.style.display = 'none';
+                const won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
+                const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
+                
+                if(won) { 
+                    balance += finalProfit; 
+                    winCount++; 
+                    withdrawTargetProgress++;
+                    updateBalanceUI(); 
+                    updateLevelUI(); 
+                }
+                
+                const tradeRecord = { 
+                    asset: activeTrade.assetName, 
+                    type: activeTrade.type, 
+                    amount: won ? finalProfit.toFixed(2) : activeTrade.amount, 
+                    result: won ? 'WIN' : 'LOSE', 
+                    date: new Date().toLocaleTimeString(),
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                
+                db.ref('history/' + currentUser + '/trades').push(tradeRecord);
+                
+                showTradeResult(won, activeTrade.amount);
+                activeTrade = null; addXP(10);
+                
+                if(document.getElementById('sideDrawer').classList.contains('open')) {
+                    updateTradeHistoryUI();
+                }
+            }
+        }
+    }
+
+    function showTradeResult(won, amount) {
+        const modal = document.getElementById('resultModal');
+        const title = document.getElementById('resultTitle');
+        const amtText = document.getElementById('resultAmount');
+        modal.style.display = 'flex';
+        if(won) { title.innerText = "PROFIT!"; title.style.color = "#00e676"; amtText.innerText = "+ Rs " + (amount * 1.92).toFixed(2); amtText.style.color = "#00e676"; } 
+        else { title.innerText = "LOSS"; title.style.color = "#ff3d00"; amtText.innerText = "- Rs " + amount.toFixed(2); amtText.style.color = "#ff3d00"; }
+    }
+
+    function updateBalanceUI() {
+        document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ balance: balance });
+        }
+    }
+
+    async function checkSession() {
+        if(localStorage.getItem('pp_session_active') === 'true') {
+            currentUser = localStorage.getItem('pp_current_user');
+            try {
+                const snap = await db.ref('users/' + currentUser).get();
+                if(snap.exists()) {
+                    isLoggedIn = true;
+                    let data = snap.val();
+                    balance = data.balance || 0; 
+                    userLevel = data.level || 1; 
+                    userXP = data.xp || 0; 
+                    winCount = data.wins || 0;
+                    withdrawTargetProgress = data.withdrawTargetProgress || 0;
+                    lastBonusTime = data.last_bonus || 0;
+                    
+                    document.getElementById('profileIdText').innerText = currentUser;
+                    document.getElementById('authModal').style.display = 'none';
+                    updateBalanceUI(); 
+                    updateBonusTimer(); 
+                    updateLevelUI();
+                } else {
+                    logout();
+                }
+            } catch(e) {
+                console.error("Database connection failed", e);
+            }
+        } else { 
+            document.getElementById('authModal').style.display = 'flex'; 
+        }
+    }
+
+    function updateWithdrawUI() {
+        const targetBox = document.getElementById('withdrawTargetBox');
+        const winsLabel = document.getElementById('currentWinsInTrans');
+        const targetLabel = document.getElementById('requiredWinsInTrans');
+        const btn = document.getElementById('transSubmitBtn');
+
+        if(currentTransMode === 'withdraw') {
+            targetBox.style.display = 'block';
+            winsLabel.innerText = withdrawTargetProgress;
+            targetLabel.innerText = requiredWinsForWithdraw;
+
+            if(withdrawTargetProgress < requiredWinsForWithdraw) {
+                targetBox.style.color = "#ff3d00"; targetBox.style.borderColor = "#ff3d00";
+                btn.disabled = true; btn.style.opacity = "0.5"; btn.innerText = "TARGET NOT COMPLETED";
+            } else {
+                targetBox.style.color = "#00e676"; targetBox.style.borderColor = "#00e676";
+                btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
+            }
+        } else {
+            targetBox.style.display = 'none'; btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "CONFIRM JAZZCASH";
+        }
+    }
+
+    function handleTransaction() {
+        const amount = parseFloat(document.getElementById('transAmount').value);
+        const promo = document.getElementById('transPromo').value.trim().toUpperCase();
+        const phone = document.getElementById('transPhone').value.trim();
+
+        if(isNaN(amount) || amount <= 0) { alert("Invalid Amount!"); return; }
+        if(!phone) { alert("Please enter JazzCash number!"); return; }
+        if(promo !== currentPromoCode) { alert("Invalid or Expired Promo Code!"); return; }
+
+        if(currentTransMode === 'withdraw') {
+            if(withdrawTargetProgress < requiredWinsForWithdraw) return; 
+            if(amount > balance) { alert("Insufficient Balance!"); return; }
+            withdrawTargetProgress = 0; 
+        }
+
+        if(currentTransMode === 'deposit') balance += amount; else balance -= amount;
+        
+        updateBalanceUI();
+        updateLevelUI();
+
+        const transRecord = { 
+            type: currentTransMode.toUpperCase(), 
+            amount: amount.toFixed(2), 
+            phone: phone, 
+            date: new Date().toLocaleTimeString(),
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        db.ref('history/' + currentUser + '/transactions').push(transRecord);
+
+        updateTransHistoryUI();
+        document.getElementById('transModal').style.display = 'none';
+        document.getElementById('transPromo').value = ""; document.getElementById('transAmount').value = "";
+        alert("Success: Your " + currentTransMode.toUpperCase() + " request has been sent!");
+    }
+
+    async function updateTransHistoryUI() {
+        if(!currentUser) return;
+        const container = document.getElementById('historyList');
+        if(!container) return;
+        container.innerHTML = '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">Loading...</p>';
+        
+        const snap = await db.ref('history/' + currentUser + '/transactions').orderByChild('timestamp').limitToLast(20).get();
+        let history = [];
+        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+
+        container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
+        history.forEach(item => {
+            const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
+            container.innerHTML += `<div class="history-item"><div><span style="color: ${color}; font-weight: bold;">${item.type}</span><div style="font-size: 9px; color: #787b86;">${item.phone}</div></div><div style="text-align: right;"><span style="font-weight: bold;">Rs ${item.amount}</span><div style="font-size: 9px; color: #787b86;">${item.date}</div></div></div>`;
+        });
+    }
+
+    function toggleDrawer(s) { document.getElementById('sideDrawer').className = s ? 'side-drawer open' : 'side-drawer'; document.getElementById('drawerOverlay').style.display = s ? 'block' : 'none'; if(s) updateTradeHistoryUI(); }
+    function toggleTransModal(s) { document.getElementById('transModal').style.display = s ? 'flex' : 'none'; if(s) { updateTransHistoryUI(); updateWithdrawUI(); } }
+    function resize() { canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio; canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio; ctx.scale(window.devicePixelRatio, window.devicePixelRatio); }
+    function logout() { localStorage.removeItem('pp_session_active'); localStorage.removeItem('pp_current_user'); location.reload(); }
+    function switchAuth(m) { currentAuthMode = m; document.getElementById('loginTab').className = m === 'login' ? 'tab-btn active' : 'tab-btn'; document.getElementById('registerTab').className = m === 'register' ? 'tab-btn active' : 'tab-btn'; document.getElementById('regFields').style.display = m === 'register' ? 'block' : 'none'; }
+    
+    async function handleAuth() { 
+        let user = document.getElementById('authUser').value.trim();
+        const pass = document.getElementById('authPass').value.trim();
+        if(!user || !pass) return;
+        
+        user = user.replace(/[\.\#\$\[\]]/g, ""); 
+        
+        const btn = document.getElementById('authSubmitBtn');
+        btn.innerText = "LOADING...";
+        btn.disabled = true;
+
+        try {
+            if(currentAuthMode === 'register') { 
+                const snap = await db.ref('users/' + user).get();
+                if(snap.exists()) {
+                    alert("Username already exists!");
+                } else {
+                    await db.ref('users/' + user).set({pass, balance: 0, level: 1, xp: 0, wins: 0, withdrawTargetProgress: 0, last_bonus: 0});
+                    alert("Registration Successful! Please Login.");
+                    switchAuth('login');
+                }
+            } else { 
+                const snap = await db.ref('users/' + user).get();
+                if(snap.exists() && snap.val().pass === pass) { 
+                    localStorage.setItem('pp_session_active', 'true'); 
+                    localStorage.setItem('pp_current_user', user); 
+                    location.reload(); 
+                } else {
+                    alert("Invalid Username or Password!");
+                }
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Connection error!");
+        }
+        
+        btn.innerText = "CONTINUE";
+        btn.disabled = false;
+    }
+    
+    function switchTrans(m) { currentTransMode = m; document.getElementById('depTab').className = m === 'deposit' ? 'tab-btn active' : 'tab-btn'; document.getElementById('withTab').className = m === 'withdraw' ? 'tab-btn active' : 'tab-btn'; updateWithdrawUI(); }
+    function manualPriceUpdate(e) { if(!isLoggedIn) return; const rect = canvas.getBoundingClientRect(); const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top; currentPrice = maxPriceGlobal - (y / rect.height) * (maxPriceGlobal - minPriceGlobal); priceHistory[priceHistory.length - 1] = currentPrice; }
+    
+    async function updateTradeHistoryUI() {
+        if(!currentUser) return;
+        const container = document.getElementById('tradeHistoryList');
+        container.innerHTML = '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">Loading...</p>';
+        
+        const snap = await db.ref('history/' + currentUser + '/trades').orderByChild('timestamp').limitToLast(20).get();
+        let history = [];
+        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+
+        container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
+        history.forEach(item => { 
+            const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
+            container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
+        });
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
