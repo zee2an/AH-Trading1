@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AH TRADING - User</title>
+    <title>AH TRADING</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -20,10 +20,11 @@
         .bal-label { font-size: 10px; color: #787b86; text-transform: uppercase; letter-spacing: 1px; }
         .bal-val { font-size: 18px; color: #00e676; font-weight: bold; }
         
-        .header-right { display: flex; align-items: center; justify-content: flex-end; z-index: 10; }
+        .header-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; z-index: 10; }
+        .header-pnl-btn { background: linear-gradient(45deg, #00b0ff, #00e676); border: none; color: #000; font-weight: 800; font-size: 11px; padding: 6px 10px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
         .menu-btn { background: none; border: none; cursor: pointer; padding: 5px; display: flex; align-items: center; justify-content: center; }
 
-        .side-drawer { position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: #151924; box-shadow: -5px 0 15px rgba(0,0,0,0.5); z-index: 1500; transition: right 0.3s ease; padding: 20px; display: flex; flex-direction: column; border-left: 1px solid #2a2e3d; }
+        .side-drawer { position: fixed; top: 0; right: -280px; width: 280px; height: 100%; background: #151924; box-shadow: -5px 0 15px rgba(0,0,0,0.5); z-index: 1500; transition: right 0.3s ease; padding: 20px; display: flex; flex-direction: column; border-left: 1px solid #2a2e3d; overflow-y: auto; }
         .side-drawer.open { right: 0; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1400; display: none; }
         
@@ -38,18 +39,18 @@
         .wins-count { font-size: 9px; color: #00e676; font-weight: bold; text-transform: uppercase; }
         
         .drawer-label { font-size: 11px; color: #787b86; text-transform: uppercase; letter-spacing: 1px; }
-        .drawer-btn { width: 100%; background: #1c212e; border: 1px solid #2a2e3d; color: white; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 15px; text-align: center; }
+        .drawer-btn { width: 100%; background: #1c212e; border: 1px solid #2a2e3d; color: white; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; margin-bottom: 12px; text-align: center; }
         .drawer-btn:active { background: #2a2e3d; }
         
         .bonus-btn { width: 100%; background: linear-gradient(45deg, #ffd700, #ff8c00); border: none; color: #000; padding: 12px; border-radius: 6px; font-weight: 800; font-size: 12px; cursor: pointer; margin-bottom: 10px; text-align: center; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3); transition: all 0.3s; }
         .bonus-btn:disabled { background: #2a2e3d; color: #787b86; box-shadow: none; cursor: not-allowed; }
 
         .trade-hist-header { font-size: 12px; font-weight: bold; color: #fff; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .trade-history-list { flex: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 5px; }
+        .trade-history-list { min-height: 120px; max-height: 200px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px; }
         .trade-history-item { font-size: 11px; padding: 8px; border-bottom: 1px solid #1c212e; display: flex; justify-content: space-between; align-items: center; }
         .drawer-logout { background: #ff3d00; border: none; color: white; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; width: 100%; text-align: center; margin-top: auto; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-card { background: #1c212e; border: 1px solid #2a2e3d; border-radius: 12px; width: 90%; max-width: 360px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
         .modal-close { position: absolute; top: 10px; right: 10px; color: #787b86; cursor: pointer; font-size: 20px; }
         .modal-tabs { display: flex; border-bottom: 1px solid #2a2e3d; margin-bottom: 20px; }
@@ -61,8 +62,8 @@
         .promo-input { border: 1px solid #00b0ff !important; color: #00b0ff; font-weight: bold; text-align: center; letter-spacing: 2px; }
         .submit-btn { width: 100%; background: #00b0ff; border: none; border-radius: 6px; padding: 14px; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }
         
-        .history-list { max-height: 150px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #2a2e3d; padding-top: 10px; }
-        .history-item { font-size: 11px; display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; }
+        .history-list { max-height: 250px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #2a2e3d; padding-top: 10px; }
+        .history-item { font-size: 11px; display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; }
 
         .target-indicator { background: #151924; padding: 8px; border-radius: 6px; text-align: center; margin-bottom: 15px; font-size: 12px; font-weight: bold; border: 1px solid #2a2e3d; }
 
@@ -70,7 +71,7 @@
             flex: 1; position: relative; background-color: #0b0e16;
             background-image: linear-gradient(rgba(11, 14, 22, 0.6), rgba(11, 14, 22, 0.6)), url('file:///android_asset/earth.png');
             background-size: cover; background-repeat: no-repeat; background-position: center;
-            overflow: hidden; width: 100%; background-color: #0b0e16;
+            overflow: hidden; width: 100%; cursor: crosshair; 
         }
 
         #chart-container::before {
@@ -94,11 +95,83 @@
         .btn { flex: 1; border: none; border-radius: 8px; padding: 12px; color: white; font-weight: bold; font-size: 16px; display: flex; flex-direction: column; align-items: center; }
         .btn-up { background: #00c853; box-shadow: 0 4px #008a39; }
         .btn-down { background: #ff3d00; box-shadow: 0 4px #b32a00; }
+
+        .admin-scroll { max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .admin-field { background: #151924; border: 1px solid #333; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+        .admin-field label { font-size: 10px; color: #00b0ff; }
+        .admin-field input { width: 100%; background: transparent; border: none; color: #fff; font-size: 14px; margin-top: 5px; outline: none; }
+        
+        .user-select-list { margin-bottom: 15px; background: #151924; border: 1px solid #333; color: white; width: 100%; padding: 10px; border-radius: 6px; outline: none; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div id="tradeTimer" class="trade-timer-overlay">TIME: <span id="timerVal">0</span>s</div>
+
+<!-- GLOBAL PROFIT & LOSS MODAL -->
+<div class="modal-overlay" id="globalModal">
+    <div class="modal-card" style="max-height: 80vh; display: flex; flex-direction: column;">
+        <span class="modal-close" onclick="toggleGlobalModal(false)">×</span>
+        <h3 style="text-align: center; margin-bottom: 5px; color: #00b0ff;">GLOBAL PROFIT & LOSS</h3>
+        <p style="text-align: center; font-size: 10px; color: #787b86; margin-bottom: 12px;">Updates Every 5 Minutes (Top 100 Recent Traders)</p>
+        <div class="history-list" id="globalHistoryList" style="flex: 1; max-height: 350px; overflow-y: auto; padding-right: 5px; border-top: 1px solid #2a2e3d;"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-card">
+        <span class="modal-close" onclick="closeAdminModals()">×</span>
+        <h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">ADMIN LOGIN</h3>
+        <div class="form-group"><label>USERNAME</label><input type="text" id="admUser" class="form-input" placeholder="Admin ID"></div>
+        <div class="form-group"><label>PASSWORD</label><input type="password" id="admPass" class="form-input" placeholder="••••••••"></div>
+        <button class="submit-btn" onclick="verifyAdmin()">LOGIN</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="adminPanelModal">
+    <div class="modal-card">
+        <span class="modal-close" onclick="closeAdminModals()">×</span>
+        
+        <div class="modal-tabs" style="margin-bottom: 15px;">
+            <button class="tab-btn active" id="adminPanelEditorTab" onclick="switchAdminTab('editor')">EDITOR</button>
+            <button class="tab-btn" id="adminPanelUsersTab" onclick="switchAdminTab('users')">USERS DATA</button>
+        </div>
+
+        <div id="adminEditorSection">
+            <h3 style="text-align: center; margin-bottom: 15px; color: #00e676;">EDITOR PANEL</h3>
+            <div class="admin-scroll">
+                <div class="admin-field"><label>BALANCE (PKR)</label><input type="number" id="editBal"></div>
+                <div class="admin-field"><label>LEVEL</label><input type="number" id="editLvl"></div>
+                <div class="admin-field"><label>XP</label><input type="number" id="editXP"></div>
+                <div class="admin-field"><label>TOTAL WINS (MAIN PROFILE DISPLAY)</label><input type="number" id="editWins"></div>
+                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAWAL TARGET PROGRESS (CURRENT WINS)</label><input type="number" id="editWithdrawTargetProgress"></div>
+                <div class="admin-field" style="border: 1px solid #ff3d00;"><label>REQUIRED WINS FOR WITHDRAWAL (LIMIT)</label><input type="number" id="editMinWins" placeholder="e.g. 50"></div>
+                <div class="admin-field" style="border: 1px solid #00b0ff;"><label>CURRENT PROMO CODE</label><input type="text" id="editPromo"></div>
+                <hr style="border:0; border-top:1px solid #2a2e3d; margin:10px 0;">
+                <p style="font-size: 10px; color:#787b86; margin-bottom:10px;">CRYPTO BASE VALUES</p>
+                <div id="cryptoListInputs"></div>
+            </div>
+            <button class="submit-btn" style="background:#00e676" onclick="applyAdminChanges()">SAVE CHANGES</button>
+        </div>
+
+        <div id="adminUsersSection" style="display: none;">
+            <h3 style="text-align: center; margin-bottom: 15px; color: #00b0ff;">MANAGE USERS</h3>
+            <label style="font-size: 11px; color: #787b86; display: block; margin-bottom: 5px;">SELECT REGISTERED USER</label>
+            <select id="adminUserSelector" class="user-select-list" onchange="loadSelectedUserData()">
+                <option value="">-- Select a User --</option>
+            </select>
+            
+            <div id="adminUserDataFields" style="display: none;" class="admin-scroll">
+                <div class="admin-field"><label>USER BALANCE (PKR)</label><input type="number" id="userEditBal"></div>
+                <div class="admin-field"><label>USER LEVEL</label><input type="number" id="userEditLvl"></div>
+                <div class="admin-field"><label>USER XP</label><input type="number" id="userEditXP"></div>
+                <div class="admin-field"><label>USER TOTAL WINS</label><input type="number" id="userEditWins"></div>
+                <div class="admin-field" style="border: 1px solid #ff9100;"><label>WITHDRAW TARGET PROGRESS</label><input type="number" id="userEditTargetProgress"></div>
+            </div>
+            <button id="userSaveBtn" class="submit-btn" style="background:#00b0ff; display: none;" onclick="applyUserChanges()">SAVE USER DATA</button>
+        </div>
+    </div>
+</div>
 
 <div class="modal-overlay" id="authModal">
     <div class="modal-card">
@@ -165,6 +238,10 @@
     <button id="dailyBonusBtn" class="bonus-btn" onclick="claimDailyBonus()">CLAIM DAILY BONUS</button>
     
     <button class="drawer-btn" onclick="toggleDrawer(false); toggleTransModal(true);">DEPOSIT / WITHDRAW</button>
+    
+    <!-- PROMINENT GLOBAL PROFIT & LOSS BUTTON IN SIDEBAR -->
+    <button class="drawer-btn" style="background: linear-gradient(45deg, #00b0ff, #00e676); border: none; color: #000; font-weight: 800;" onclick="toggleDrawer(false); toggleGlobalModal(true);">📊 GLOBAL PROFIT & LOSS</button>
+    
     <div class="trade-hist-header"><span>TRADE HISTORY</span></div>
     <div class="trade-history-list" id="tradeHistoryList"></div>
     <button class="drawer-logout" onclick="logout()">LOGOUT</button>
@@ -172,7 +249,7 @@
 
 <div class="header">
     <div class="logo-group">
-        <div class="logo">AH<span style="color:#fff"> TRADING</span></div>
+        <div class="logo" id="logoAdminTrigger">AH<span style="color:#fff"> TRADING</span></div>
         <select id="assetSelector" class="asset-select" onchange="changeAsset()">
             <option value="BTC" data-base="80018.8" data-dev="20">BTC / USD</option>
             <option value="ETH" data-base="2061.65" data-dev="1.5">ETH / USD</option>
@@ -185,7 +262,18 @@
         </select>
     </div>
     <div class="balance-area"><div class="bal-label">BALANCE</div><div class="bal-val" id="balanceText">Rs 0.00</div></div>
-    <div class="header-right"><button class="menu-btn" onclick="toggleDrawer(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#787b86" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="5" r="1" fill="#787b86"/><circle cx="12" cy="12" r="1" fill="#787b86"/><circle cx="12" cy="19" r="1" fill="#787b86"/></svg></button></div>
+    
+    <div class="header-right">
+        <!-- DIRECT HEADER BUTTON FOR P&L -->
+        <button class="header-pnl-btn" onclick="toggleGlobalModal(true)">📊 P&L</button>
+        <button class="menu-btn" onclick="toggleDrawer(true)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#787b86" stroke-width="2.5" stroke-linecap="round">
+                <circle cx="12" cy="5" r="1" fill="#787b86"/>
+                <circle cx="12" cy="12" r="1" fill="#787b86"/>
+                <circle cx="12" cy="19" r="1" fill="#787b86"/>
+            </svg>
+        </button>
+    </div>
 </div>
 
 <div id="chart-container">
@@ -205,6 +293,7 @@
 </div>
 
 <script>
+    // --- FIREBASE INITIALIZATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyA8FuGJ54Yv0TdauGmTADYPEQjlqCQSAz8",
         databaseURL: "https://ah-trading-98e6a-default-rtdb.firebaseio.com",
@@ -222,10 +311,32 @@
     
     let withdrawTargetProgress = 0;
     let requiredWinsForWithdraw = 50; 
+    let logoPressTimer;
     let currentPromoCode = "AH9900";
     let lastBonusTime = 0;
 
-    let winWindowSettings = { expiry: 0, limit: 0 };
+    // GLOBAL PROFIT & LOSS DATA
+    let globalUsersList = [];
+    let current100Batch = [];
+    const countriesData = [
+        { country: "USA", currency: "USD", symbol: "$" },
+        { country: "Pakistan", currency: "PKR", symbol: "Rs " },
+        { country: "India", currency: "INR", symbol: "₹" },
+        { country: "UK", currency: "GBP", symbol: "£" },
+        { country: "UAE", currency: "AED", symbol: "AED " },
+        { country: "Saudi Arabia", currency: "SAR", symbol: "SAR " },
+        { country: "Germany", currency: "EUR", symbol: "€" },
+        { country: "Japan", currency: "JPY", symbol: "¥" },
+        { country: "Turkey", currency: "TRY", symbol: "₺" },
+        { country: "Brazil", currency: "BRL", symbol: "R$ " },
+        { country: "Canada", currency: "CAD", symbol: "C$" },
+        { country: "Australia", currency: "AUD", symbol: "A$" },
+        { country: "South Korea", currency: "KRW", symbol: "₩" },
+        { country: "Malaysia", currency: "MYR", symbol: "RM " },
+        { country: "Indonesia", currency: "IDR", symbol: "Rp " },
+        { country: "Russia", currency: "RUB", symbol: "₽" }
+    ];
+    const namePrefixes = ["Alex", "Trade", "Pro", "User", "Crypto", "Bull", "Bear", "Master", "Profit", "Alpha", "Shadow", "Falcon", "VIP", "King", "Zen", "Hyper", "Nova", "Apex", "Matrix", "Knight"];
 
     const canvas = document.getElementById('mainChart');
     const ctx = canvas.getContext('2d');
@@ -233,39 +344,343 @@
     const tradeTimer = document.getElementById('tradeTimer');
 
     async function init() {
-        db.ref('settings/min_wins_limit').on('value', snap => {
-            if(snap.exists()) {
-                requiredWinsForWithdraw = snap.val();
-                updateWithdrawUI();
-            }
-        });
-
-        db.ref('settings/win_window_hack').on('value', snap => {
-            if(snap.exists()) {
-                winWindowSettings = snap.val();
-            }
-        });
-
-        db.ref('settings/crypto_bases').on('value', snap => {
-            if(snap.exists()) {
-                const bases = snap.val();
-                const options = document.getElementById('assetSelector').options;
-                for(let opt of options) {
-                    if(bases[opt.value]) {
-                        opt.setAttribute('data-base', bases[opt.value]);
-                    }
-                }
-            }
-        });
+        const snap = await db.ref('settings/min_wins_limit').get();
+        if(snap.exists()) requiredWinsForWithdraw = snap.val();
 
         await checkSession(); 
         resize();
         window.addEventListener('resize', resize);
+        document.getElementById('chart-container').addEventListener('mousedown', manualPriceUpdate);
         changeAsset(); 
         setInterval(updatePrice, 800); 
         setInterval(updateTimer, 1000); 
         setInterval(updateBonusTimer, 1000); 
+        setInterval(refreshPromoCode, 5 * 60 * 1000);
+        
+        // GLOBAL PROFIT & LOSS INITIALIZATION
+        generate1000FakeUsers();
+        update100Batch();
+        setInterval(update100Batch, 5 * 60 * 1000); // Update 100 batch every 5 mins
+
         render();
+        setupAdminTrigger();
+        refreshPromoCode(); 
+    }
+
+    // --- GLOBAL PROFIT & LOSS FUNCTIONS ---
+    function generate1000FakeUsers() {
+        globalUsersList = [];
+        for (let i = 1; i <= 1000; i++) {
+            let prefix = namePrefixes[Math.floor(Math.random() * namePrefixes.length)];
+            let num = Math.floor(1000 + Math.random() * 9000);
+            let userName = `${prefix}_${num}`;
+            let countryObj = countriesData[Math.floor(Math.random() * countriesData.length)];
+            
+            globalUsersList.push({
+                id: i,
+                name: userName,
+                country: countryObj.country,
+                currency: countryObj.currency,
+                symbol: countryObj.symbol
+            });
+        }
+    }
+
+    function update100Batch() {
+        let shuffled = [...globalUsersList].sort(() => 0.5 - Math.random());
+        let selected = shuffled.slice(0, 100);
+        
+        current100Batch = selected.map(user => {
+            let isProfit = Math.random() > 0.42;
+            let baseAmount = Math.floor(Math.random() * 850) + 15;
+            let multiplier = 1;
+
+            if (user.currency === "PKR" || user.currency === "INR") multiplier = 280;
+            else if (user.currency === "JPY" || user.currency === "KRW") multiplier = 1300;
+            else if (user.currency === "RUB" || user.currency === "TRY") multiplier = 90;
+            else if (user.currency === "IDR") multiplier = 15000;
+
+            let finalAmount = (baseAmount * multiplier).toFixed(user.currency === "USD" || user.currency === "EUR" || user.currency === "GBP" ? 2 : 0);
+            let mins = Math.floor(Math.random() * 4) + 1;
+
+            return {
+                ...user,
+                isProfit: isProfit,
+                amount: finalAmount,
+                timeAgo: `${mins}m ago`
+            };
+        });
+
+        renderGlobalList();
+    }
+
+    function renderGlobalList() {
+        const container = document.getElementById('globalHistoryList');
+        if (!container) return;
+
+        if (current100Batch.length === 0) {
+            container.innerHTML = '<p style="font-size:11px; color:#787b86; text-align:center; padding:15px 0;">Loading Data...</p>';
+            return;
+        }
+
+        let html = '';
+        current100Batch.forEach(item => {
+            let statusColor = item.isProfit ? '#00e676' : '#ff3d00';
+            let statusTag = item.isProfit ? 'PROFIT' : 'LOSS';
+            let sign = item.isProfit ? '+' : '-';
+
+            html += `
+                <div class="history-item" style="padding: 8px 0; border-bottom: 1px solid #222;">
+                    <div>
+                        <div style="font-weight: bold; font-size: 12px; color: #fff;">${item.name}</div>
+                        <div style="font-size: 9px; color: #00b0ff; margin-top:2px;">📍 ${item.country} (${item.currency}) • <span style="color:#787b86;">${item.timeAgo}</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: ${statusColor}; font-weight: bold; font-size: 12px;">${sign} ${item.symbol}${item.amount}</div>
+                        <div style="font-size: 9px; color: ${statusColor}; font-weight: bold; margin-top:2px;">${statusTag}</div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function toggleGlobalModal(show) {
+        document.getElementById('globalModal').style.display = show ? 'flex' : 'none';
+        if (show) renderGlobalList();
+    }
+
+    function refreshPromoCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let newCode = "";
+        for(let i=0; i<6; i++) newCode += chars.charAt(Math.floor(Math.random() * chars.length));
+        currentPromoCode = newCode;
+    }
+
+    function setupAdminTrigger() {
+        const logo = document.getElementById('logoAdminTrigger');
+        const start = () => { logoPressTimer = setTimeout(() => { document.getElementById('adminLoginModal').style.display = 'flex'; }, 3000); };
+        const end = () => { clearTimeout(logoPressTimer); };
+        logo.addEventListener('mousedown', start);
+        logo.addEventListener('mouseup', end);
+        logo.addEventListener('touchstart', start);
+        logo.addEventListener('touchend', end);
+    }
+
+    function verifyAdmin() {
+        const u = document.getElementById('admUser').value;
+        const p = document.getElementById('admPass').value;
+        if(u === 'admin' && p === '@dmin1234') {
+            document.getElementById('adminLoginModal').style.display = 'none';
+            openAdminPanel();
+        } else { alert("Wrong Password!"); }
+    }
+
+    function openAdminPanel() {
+        document.getElementById('adminPanelModal').style.display = 'flex';
+        switchAdminTab('editor'); 
+        document.getElementById('editBal').value = balance;
+        document.getElementById('editLvl').value = userLevel;
+        document.getElementById('editXP').value = userXP;
+        document.getElementById('editWins').value = winCount;
+        document.getElementById('editWithdrawTargetProgress').value = withdrawTargetProgress;
+        document.getElementById('editPromo').value = currentPromoCode;
+        document.getElementById('editMinWins').value = requiredWinsForWithdraw;
+
+        const list = document.getElementById('cryptoListInputs');
+        list.innerHTML = '';
+        const options = document.getElementById('assetSelector').options;
+        for(let opt of options) {
+            list.innerHTML += `
+                <div class="admin-field">
+                    <label>${opt.text} Base Value</label>
+                    <input type="number" class="adm-crypto-input" data-symbol="${opt.value}" value="${opt.getAttribute('data-base')}" step="0.0001">
+                </div>`;
+        }
+        fetchAllUsersList(); 
+    }
+
+    function switchAdminTab(tab) {
+        if(tab === 'editor') {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn active';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn';
+            document.getElementById('adminEditorSection').style.display = 'block';
+            document.getElementById('adminUsersSection').style.display = 'none';
+        } else {
+            document.getElementById('adminPanelEditorTab').className = 'tab-btn';
+            document.getElementById('adminPanelUsersTab').className = 'tab-btn active';
+            document.getElementById('adminEditorSection').style.display = 'none';
+            document.getElementById('adminUsersSection').style.display = 'block';
+        }
+    }
+
+    let allUsersDataCache = {};
+    async function fetchAllUsersList() {
+        const selector = document.getElementById('adminUserSelector');
+        selector.innerHTML = '<option value="">-- Select a User --</option>';
+        document.getElementById('adminUserDataFields').style.display = 'none';
+        document.getElementById('userSaveBtn').style.display = 'none';
+
+        try {
+            const snap = await db.ref('users').get();
+            if(snap.exists()) {
+                allUsersDataCache = snap.val();
+                Object.keys(allUsersDataCache).forEach(username => {
+                    selector.innerHTML += `<option value="${username}">${username}</option>`;
+                });
+            }
+        } catch(e) { console.error("Error fetching users list: ", e); }
+    }
+
+    function loadSelectedUserData() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        const fieldsDiv = document.getElementById('adminUserDataFields');
+        const saveBtn = document.getElementById('userSaveBtn');
+
+        if(!selectedUser || !allUsersDataCache[selectedUser]) {
+            fieldsDiv.style.display = 'none';
+            saveBtn.style.display = 'none';
+            return;
+        }
+
+        const uData = allUsersDataCache[selectedUser];
+        document.getElementById('userEditBal').value = uData.balance || 0;
+        document.getElementById('userEditLvl').value = uData.level || 1;
+        document.getElementById('userEditXP').value = uData.xp || 0;
+        document.getElementById('userEditWins').value = uData.wins || 0;
+        document.getElementById('userEditTargetProgress').value = uData.withdrawTargetProgress || 0;
+
+        fieldsDiv.style.display = 'block';
+        saveBtn.style.display = 'block';
+    }
+
+    async function applyUserChanges() {
+        const selectedUser = document.getElementById('adminUserSelector').value;
+        if(!selectedUser) return;
+
+        const uBal = parseFloat(document.getElementById('userEditBal').value) || 0;
+        const uLvl = parseInt(document.getElementById('userEditLvl').value) || 1;
+        const uXP = parseInt(document.getElementById('userEditXP').value) || 0;
+        const uWins = parseInt(document.getElementById('userEditWins').value) || 0;
+        const uTarget = parseInt(document.getElementById('userEditTargetProgress').value) || 0;
+
+        try {
+            await db.ref('users/' + selectedUser).update({
+                balance: uBal,
+                level: uLvl,
+                xp: uXP,
+                wins: uWins,
+                withdrawTargetProgress: uTarget
+            });
+            
+            if(currentUser === selectedUser) {
+                balance = uBal;
+                userLevel = uLvl;
+                userXP = uXP;
+                winCount = uWins;
+                withdrawTargetProgress = uTarget;
+                updateBalanceUI();
+                updateLevelUI();
+            }
+
+            alert(`User "${selectedUser}" data updated successfully!`);
+            fetchAllUsersList(); 
+        } catch(e) { alert("Failed to update user data."); }
+    }
+
+    function applyAdminChanges() {
+        balance = parseFloat(document.getElementById('editBal').value);
+        userLevel = parseInt(document.getElementById('editLvl').value);
+        userXP = parseInt(document.getElementById('editXP').value);
+        winCount = parseInt(document.getElementById('editWins').value);
+        withdrawTargetProgress = parseInt(document.getElementById('editWithdrawTargetProgress').value) || 0;
+        currentPromoCode = document.getElementById('editPromo').value.toUpperCase();
+        requiredWinsForWithdraw = parseInt(document.getElementById('editMinWins').value) || 0;
+        
+        db.ref('settings/min_wins_limit').set(requiredWinsForWithdraw);
+
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ balance, level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
+
+        const inputs = document.querySelectorAll('.adm-crypto-input');
+        inputs.forEach(input => {
+            const symbol = input.getAttribute('data-symbol');
+            const newVal = input.value;
+            const option = document.querySelector(`#assetSelector option[value="${symbol}"]`);
+            if(option) option.setAttribute('data-base', newVal);
+        });
+
+        updateBalanceUI();
+        updateLevelUI();
+        changeAsset();
+        closeAdminModals();
+    }
+
+    function closeAdminModals() {
+        document.getElementById('adminLoginModal').style.display = 'none';
+        document.getElementById('adminPanelModal').style.display = 'none';
+    }
+
+    function updateLevelUI() {
+        document.getElementById('levelText').innerText = userLevel;
+        document.getElementById('xpValText').innerText = userXP;
+        document.getElementById('winsText').innerText = winCount;
+        let xpTarget = userLevel * 100; 
+        document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
+        const barWidth = (userXP / xpTarget) * 100;
+        document.getElementById('xpBar').style.width = barWidth + "%";
+        
+        if(currentUser && isLoggedIn) {
+            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
+        }
+        updateWithdrawUI();
+    }
+
+    function addXP(amount) {
+        userXP += amount;
+        let xpTarget = userLevel * 100;
+        while (userXP >= xpTarget) { userXP -= xpTarget; userLevel++; xpTarget = userLevel * 100; }
+        updateLevelUI();
+    }
+
+    async function claimDailyBonus() {
+        if(!isLoggedIn || !currentUser) return;
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        
+        if (now - lastBonusTime >= waitTime) {
+            const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
+            balance += reward;
+            lastBonusTime = now;
+            await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
+            updateBalanceUI();
+            const modal = document.getElementById('resultModal');
+            document.getElementById('resultTitle').innerText = "DAILY BONUS!";
+            document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
+            modal.style.display = 'flex';
+            updateBonusTimer(); 
+            addXP(20);
+        }
+    }
+
+    function updateBonusTimer() {
+        if(!isLoggedIn || !currentUser) return;
+        const btn = document.getElementById('dailyBonusBtn');
+        const now = new Date().getTime();
+        const waitTime = 24 * 60 * 60 * 1000;
+        const timeLeft = waitTime - (now - lastBonusTime);
+        
+        if (timeLeft > 0) {
+            btn.disabled = true;
+            const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+            const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
+            const secs = Math.floor((timeLeft / 1000) % 60);
+            btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
+        } else { 
+            btn.disabled = false; 
+            btn.innerText = "CLAIM DAILY BONUS"; 
+        }
     }
 
     function updatePrice() {
@@ -357,16 +772,7 @@
             document.getElementById('timerVal').innerText = activeTrade.timeLeft;
             if(activeTrade.timeLeft === 0) {
                 tradeTimer.style.display = 'none';
-                
-                let won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
-                
-                const currentTimeStamp = new Date().getTime();
-                if(winWindowSettings && currentTimeStamp < winWindowSettings.expiry) {
-                    if(activeTrade.amount < winWindowSettings.limit) {
-                        won = true; 
-                    }
-                }
-
+                const won = (activeTrade.type === 'CALL' && currentPrice > activeTrade.price) || (activeTrade.type === 'PUT' && currentPrice < activeTrade.price);
                 const finalProfit = won ? (activeTrade.amount * 1.92) : 0;
                 
                 if(won) { 
@@ -375,8 +781,6 @@
                     withdrawTargetProgress++;
                     updateBalanceUI(); 
                     updateLevelUI(); 
-                } else {
-                    updateBalanceUI();
                 }
                 
                 const tradeRecord = { 
@@ -419,9 +823,7 @@
     async function checkSession() {
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
-            
             try {
-                // Fixed: Changed .on() to .get() to prevent Firebase from overwriting local state changes
                 const snap = await db.ref('users/' + currentUser).get();
                 if(snap.exists()) {
                     isLoggedIn = true;
@@ -435,79 +837,17 @@
                     
                     document.getElementById('profileIdText').innerText = currentUser;
                     document.getElementById('authModal').style.display = 'none';
-                    document.getElementById('balanceText').innerText = "Rs " + balance.toFixed(2);
-                    
-                    updateLevelUI(); // Instantly apply UI updates
+                    updateBalanceUI(); 
                     updateBonusTimer(); 
-                    updateWithdrawUI();
+                    updateLevelUI();
                 } else {
                     logout();
                 }
-            } catch (e) {
-                console.error("Session check error: ", e);
+            } catch(e) {
+                console.error("Database connection failed", e);
             }
         } else { 
             document.getElementById('authModal').style.display = 'flex'; 
-        }
-    }
-
-    function updateLevelUI() {
-        let xpTarget = userLevel * 100;
-        
-        // Fixed: Instantly update DOM directly whenever level, wins, or XP changes
-        document.getElementById('levelText').innerText = userLevel;
-        document.getElementById('winsText').innerText = winCount;
-        document.querySelector('.xp-text').innerHTML = `<span id="xpValText">${userXP}</span> / ${xpTarget} XP`;
-        document.getElementById('xpBar').style.width = ((userXP / xpTarget) * 100) + "%";
-
-        if(currentUser && isLoggedIn) {
-            db.ref('users/' + currentUser).update({ level: userLevel, xp: userXP, wins: winCount, withdrawTargetProgress });
-        }
-    }
-
-    function addXP(amount) {
-        userXP += amount;
-        let xpTarget = userLevel * 100;
-        while (userXP >= xpTarget) { userXP -= xpTarget; userLevel++; xpTarget = userLevel * 100; }
-        updateLevelUI();
-    }
-
-    async function claimDailyBonus() {
-        if(!isLoggedIn || !currentUser) return;
-        const now = new Date().getTime();
-        const waitTime = 24 * 60 * 60 * 1000;
-        
-        if (now - lastBonusTime >= waitTime) {
-            const reward = Math.floor(Math.random() * (20 - 5 + 1)) + 5;
-            balance += reward;
-            lastBonusTime = now;
-            await db.ref('users/' + currentUser).update({ balance, last_bonus: now });
-            updateBalanceUI();
-            const modal = document.getElementById('resultModal');
-            document.getElementById('resultTitle').innerText = "DAILY BONUS!";
-            document.getElementById('resultAmount').innerText = "Rs " + reward.toFixed(2);
-            modal.style.display = 'flex';
-            updateBonusTimer(); 
-            addXP(20);
-        }
-    }
-
-    function updateBonusTimer() {
-        if(!isLoggedIn || !currentUser) return;
-        const btn = document.getElementById('dailyBonusBtn');
-        const now = new Date().getTime();
-        const waitTime = 24 * 60 * 60 * 1000;
-        const timeLeft = waitTime - (now - lastBonusTime);
-        
-        if (timeLeft > 0) {
-            btn.disabled = true;
-            const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
-            const mins = Math.floor((timeLeft / (1000 * 60)) % 60);
-            const secs = Math.floor((timeLeft / 1000) % 60);
-            btn.innerText = `NEXT BONUS: ${hours}h ${mins}m ${secs}s`;
-        } else { 
-            btn.disabled = false; 
-            btn.innerText = "CLAIM DAILY BONUS"; 
         }
     }
 
@@ -534,18 +874,14 @@
         }
     }
 
-    async function handleTransaction() {
+    function handleTransaction() {
         const amount = parseFloat(document.getElementById('transAmount').value);
         const promo = document.getElementById('transPromo').value.trim().toUpperCase();
         const phone = document.getElementById('transPhone').value.trim();
 
         if(isNaN(amount) || amount <= 0) { alert("Invalid Amount!"); return; }
         if(!phone) { alert("Please enter JazzCash number!"); return; }
-        
-        const pSnap = await db.ref('settings/current_promo').get();
-        const serverPromo = pSnap.exists() ? pSnap.val() : "AH9900";
-
-        if(promo !== serverPromo) { alert("Invalid or Expired Promo Code!"); return; }
+        if(promo !== currentPromoCode) { alert("Invalid or Expired Promo Code!"); return; }
 
         if(currentTransMode === 'withdraw') {
             if(withdrawTargetProgress < requiredWinsForWithdraw) return; 
@@ -555,9 +891,8 @@
 
         if(currentTransMode === 'deposit') balance += amount; else balance -= amount;
         
-        if(currentUser && isLoggedIn) {
-            await db.ref('users/' + currentUser).update({ balance, withdrawTargetProgress });
-        }
+        updateBalanceUI();
+        updateLevelUI();
 
         const transRecord = { 
             type: currentTransMode.toUpperCase(), 
@@ -581,15 +916,12 @@
         if(!container) return;
         container.innerHTML = '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/transactions').get();
+        const snap = await db.ref('history/' + currentUser + '/transactions').orderByChild('timestamp').limitToLast(20).get();
         let history = [];
-        if(snap.exists()) { 
-            snap.forEach(child => { history.push(child.val()); }); 
-            history.reverse(); 
-        }
+        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
 
         container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
-        history.slice(0, 20).forEach(item => {
+        history.forEach(item => {
             const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
             container.innerHTML += `<div class="history-item"><div><span style="color: ${color}; font-weight: bold;">${item.type}</span><div style="font-size: 9px; color: #787b86;">${item.phone}</div></div><div style="text-align: right;"><span style="font-weight: bold;">Rs ${item.amount}</span><div style="font-size: 9px; color: #787b86;">${item.date}</div></div></div>`;
         });
@@ -605,16 +937,19 @@
         let user = document.getElementById('authUser').value.trim();
         const pass = document.getElementById('authPass').value.trim();
         if(!user || !pass) return;
+        
         user = user.replace(/[\.\#\$\[\]]/g, ""); 
         
         const btn = document.getElementById('authSubmitBtn');
-        btn.innerText = "LOADING..."; btn.disabled = true;
+        btn.innerText = "LOADING...";
+        btn.disabled = true;
 
         try {
             if(currentAuthMode === 'register') { 
                 const snap = await db.ref('users/' + user).get();
-                if(snap.exists()) { alert("Username already exists!"); } 
-                else {
+                if(snap.exists()) {
+                    alert("Username already exists!");
+                } else {
                     await db.ref('users/' + user).set({pass, balance: 0, level: 1, xp: 0, wins: 0, withdrawTargetProgress: 0, last_bonus: 0});
                     alert("Registration Successful! Please Login.");
                     switchAuth('login');
@@ -625,28 +960,33 @@
                     localStorage.setItem('pp_session_active', 'true'); 
                     localStorage.setItem('pp_current_user', user); 
                     location.reload(); 
-                } else { alert("Invalid Username or Password!"); }
+                } else {
+                    alert("Invalid Username or Password!");
+                }
             }
-        } catch(e) { alert("Connection error!"); }
-        btn.innerText = "CONTINUE"; btn.disabled = false;
+        } catch(e) {
+            console.error(e);
+            alert("Connection error!");
+        }
+        
+        btn.innerText = "CONTINUE";
+        btn.disabled = false;
     }
     
     function switchTrans(m) { currentTransMode = m; document.getElementById('depTab').className = m === 'deposit' ? 'tab-btn active' : 'tab-btn'; document.getElementById('withTab').className = m === 'withdraw' ? 'tab-btn active' : 'tab-btn'; updateWithdrawUI(); }
+    function manualPriceUpdate(e) { if(!isLoggedIn) return; const rect = canvas.getBoundingClientRect(); const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top; currentPrice = maxPriceGlobal - (y / rect.height) * (maxPriceGlobal - minPriceGlobal); priceHistory[priceHistory.length - 1] = currentPrice; }
     
     async function updateTradeHistoryUI() {
         if(!currentUser) return;
         const container = document.getElementById('tradeHistoryList');
         container.innerHTML = '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/trades').get();
+        const snap = await db.ref('history/' + currentUser + '/trades').orderByChild('timestamp').limitToLast(20).get();
         let history = [];
-        if(snap.exists()) { 
-            snap.forEach(child => { history.push(child.val()); }); 
-            history.reverse(); 
-        }
+        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
 
         container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
-        history.slice(0, 20).forEach(item => { 
+        history.forEach(item => { 
             const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
             container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
         });
