@@ -331,8 +331,10 @@
     const tradeTimer = document.getElementById('tradeTimer');
 
     async function init() {
-        const snap = await db.ref('settings/min_wins_limit').get();
-        if(snap.exists()) requiredWinsForWithdraw = snap.val();
+        try {
+            const snap = await db.ref('settings/min_wins_limit').once('value');
+            if(snap.exists()) requiredWinsForWithdraw = snap.val();
+        } catch(e) { console.error(e); }
 
         await checkSession(); 
         resize();
@@ -509,7 +511,7 @@
         document.getElementById('userSaveBtn').style.display = 'none';
 
         try {
-            const snap = await db.ref('users').get();
+            const snap = await db.ref('users').once('value');
             if(snap.exists()) {
                 allUsersDataCache = snap.val();
                 Object.keys(allUsersDataCache).forEach(username => {
@@ -811,7 +813,7 @@
         if(localStorage.getItem('pp_session_active') === 'true') {
             currentUser = localStorage.getItem('pp_current_user');
             try {
-                const snap = await db.ref('users/' + currentUser).get();
+                const snap = await db.ref('users/' + currentUser).once('value');
                 if(snap.exists()) {
                     isLoggedIn = true;
                     let data = snap.val();
@@ -903,15 +905,26 @@
         if(!container) return;
         container.innerHTML = '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/transactions').orderByChild('timestamp').limitToLast(20).get();
-        let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+        try {
+            const snap = await db.ref('history/' + currentUser + '/transactions').once('value');
+            let history = [];
+            if(snap.exists()) { 
+                snap.forEach(child => { 
+                    history.unshift(child.val()); 
+                }); 
+            }
 
-        container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
-        history.forEach(item => {
-            const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
-            container.innerHTML += `<div class="history-item"><div><span style="color: ${color}; font-weight: bold;">${item.type}</span><div style="font-size: 9px; color: #787b86;">${item.phone}</div></div><div style="text-align: right;"><span style="font-weight: bold;">Rs ${item.amount}</span><div style="font-size: 9px; color: #787b86;">${item.date}</div></div></div>`;
-        });
+            history = history.slice(0, 20);
+
+            container.innerHTML = history.length ? '' : '<p style="font-size:10px; color:#555; text-align:center; padding:10px 0;">No Transaction History</p>';
+            history.forEach(item => {
+                const color = item.type === 'DEPOSIT' ? '#00e676' : '#ff3d00';
+                container.innerHTML += `<div class="history-item"><div><span style="color: ${color}; font-weight: bold;">${item.type}</span><div style="font-size: 9px; color: #787b86;">${item.phone}</div></div><div style="text-align: right;"><span style="font-weight: bold;">Rs ${item.amount}</span><div style="font-size: 9px; color: #787b86;">${item.date}</div></div></div>`;
+            });
+        } catch(e) {
+            console.error("Error loading transaction history:", e);
+            container.innerHTML = '<p style="font-size:10px; color:#ff3d00; text-align:center; padding:10px 0;">Failed to load history</p>';
+        }
     }
 
     function toggleDrawer(s) { document.getElementById('sideDrawer').className = s ? 'side-drawer open' : 'side-drawer'; document.getElementById('drawerOverlay').style.display = s ? 'block' : 'none'; if(s) updateTradeHistoryUI(); }
@@ -933,7 +946,7 @@
 
         try {
             if(currentAuthMode === 'register') { 
-                const snap = await db.ref('users/' + user).get();
+                const snap = await db.ref('users/' + user).once('value');
                 if(snap.exists()) {
                     alert("Username already exists!");
                 } else {
@@ -942,7 +955,7 @@
                     switchAuth('login');
                 }
             } else { 
-                const snap = await db.ref('users/' + user).get();
+                const snap = await db.ref('users/' + user).once('value');
                 if(snap.exists() && snap.val().pass === pass) { 
                     localStorage.setItem('pp_session_active', 'true'); 
                     localStorage.setItem('pp_current_user', user); 
@@ -966,17 +979,29 @@
     async function updateTradeHistoryUI() {
         if(!currentUser) return;
         const container = document.getElementById('tradeHistoryList');
+        if(!container) return;
         container.innerHTML = '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">Loading...</p>';
         
-        const snap = await db.ref('history/' + currentUser + '/trades').orderByChild('timestamp').limitToLast(20).get();
-        let history = [];
-        if(snap.exists()) { snap.forEach(child => { history.unshift(child.val()); }); }
+        try {
+            const snap = await db.ref('history/' + currentUser + '/trades').once('value');
+            let history = [];
+            if(snap.exists()) { 
+                snap.forEach(child => { 
+                    history.unshift(child.val()); 
+                }); 
+            }
 
-        container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
-        history.forEach(item => { 
-            const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
-            container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
-        });
+            history = history.slice(0, 20);
+
+            container.innerHTML = history.length ? '' : '<p style="font-size:11px; color:#555; text-align:center; padding-top:20px;">No Trades Executed</p>';
+            history.forEach(item => { 
+                const color = item.result === 'WIN' ? '#00e676' : '#ff3d00'; 
+                container.innerHTML += `<div class="trade-history-item"><div><div style="font-weight:bold;">${item.asset} (${item.type})</div><div style="font-size:9px; color:#787b86;">${item.date}</div></div><div style="color:${color}; font-weight:bold; text-align:right;"><div>${item.result}</div><div style="font-size:10px;">Rs ${item.amount}</div></div></div>`; 
+            });
+        } catch(e) {
+            console.error("Error loading trade history:", e);
+            container.innerHTML = '<p style="font-size:11px; color:#ff3d00; text-align:center; padding-top:20px;">Failed to load history</p>';
+        }
     }
     window.onload = init;
 </script>
